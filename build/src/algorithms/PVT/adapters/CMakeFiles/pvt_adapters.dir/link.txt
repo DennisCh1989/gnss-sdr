@@ -1,0 +1,2 @@
+/usr/bin/ar qc libpvt_adapters.a  CMakeFiles/pvt_adapters.dir/gps_l1_ca_pvt.cc.o CMakeFiles/pvt_adapters.dir/galileo_e1_pvt.cc.o CMakeFiles/pvt_adapters.dir/hybrid_pvt.cc.o
+/usr/bin/ranlib libpvt_adapters.a

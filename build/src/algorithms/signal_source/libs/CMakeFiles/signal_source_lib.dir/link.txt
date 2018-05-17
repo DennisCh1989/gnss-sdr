@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsignal_source_lib.a  CMakeFiles/signal_source_lib.dir/rtl_tcp_commands.cc.o CMakeFiles/signal_source_lib.dir/rtl_tcp_dongle_info.cc.o
+/usr/bin/ranlib libsignal_source_lib.a

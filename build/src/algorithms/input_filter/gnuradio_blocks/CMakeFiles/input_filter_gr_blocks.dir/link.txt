@@ -1,0 +1,2 @@
+/usr/bin/ar qc libinput_filter_gr_blocks.a  CMakeFiles/input_filter_gr_blocks.dir/beamformer.cc.o
+/usr/bin/ranlib libinput_filter_gr_blocks.a

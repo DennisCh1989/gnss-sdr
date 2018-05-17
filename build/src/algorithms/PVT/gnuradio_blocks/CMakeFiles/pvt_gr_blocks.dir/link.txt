@@ -1,0 +1,2 @@
+/usr/bin/ar qc libpvt_gr_blocks.a  CMakeFiles/pvt_gr_blocks.dir/gps_l1_ca_pvt_cc.cc.o CMakeFiles/pvt_gr_blocks.dir/galileo_e1_pvt_cc.cc.o CMakeFiles/pvt_gr_blocks.dir/hybrid_pvt_cc.cc.o
+/usr/bin/ranlib libpvt_gr_blocks.a

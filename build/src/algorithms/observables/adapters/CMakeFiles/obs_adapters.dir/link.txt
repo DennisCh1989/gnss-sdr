@@ -1,0 +1,2 @@
+/usr/bin/ar qc libobs_adapters.a  CMakeFiles/obs_adapters.dir/gps_l1_ca_observables.cc.o CMakeFiles/obs_adapters.dir/gps_l2c_observables.cc.o CMakeFiles/obs_adapters.dir/galileo_e1_observables.cc.o CMakeFiles/obs_adapters.dir/galileo_e5a_observables.cc.o CMakeFiles/obs_adapters.dir/hybrid_observables.cc.o
+/usr/bin/ranlib libobs_adapters.a
