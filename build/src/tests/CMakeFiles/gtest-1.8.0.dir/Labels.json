@@ -1,0 +1,43 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/home/ubuntu/passive_radar/gnss-sdr/build/src/tests/CMakeFiles/gtest-1.8.0"
+		},
+		{
+			"file" : "/home/ubuntu/passive_radar/gnss-sdr/build/src/tests/CMakeFiles/gtest-1.8.0.rule"
+		},
+		{
+			"file" : "/home/ubuntu/passive_radar/gnss-sdr/build/src/tests/CMakeFiles/gtest-1.8.0-complete.rule"
+		},
+		{
+			"file" : "/home/ubuntu/passive_radar/gnss-sdr/build/src/tests/gtest-1.8.0-prefix/src/gtest-1.8.0-stamp/gtest-1.8.0-install.rule"
+		},
+		{
+			"file" : "/home/ubuntu/passive_radar/gnss-sdr/build/src/tests/gtest-1.8.0-prefix/src/gtest-1.8.0-stamp/gtest-1.8.0-mkdir.rule"
+		},
+		{
+			"file" : "/home/ubuntu/passive_radar/gnss-sdr/build/src/tests/gtest-1.8.0-prefix/src/gtest-1.8.0-stamp/gtest-1.8.0-download.rule"
+		},
+		{
+			"file" : "/home/ubuntu/passive_radar/gnss-sdr/build/src/tests/gtest-1.8.0-prefix/src/gtest-1.8.0-stamp/gtest-1.8.0-update.rule"
+		},
+		{
+			"file" : "/home/ubuntu/passive_radar/gnss-sdr/build/src/tests/gtest-1.8.0-prefix/src/gtest-1.8.0-stamp/gtest-1.8.0-patch.rule"
+		},
+		{
+			"file" : "/home/ubuntu/passive_radar/gnss-sdr/build/src/tests/gtest-1.8.0-prefix/src/gtest-1.8.0-stamp/gtest-1.8.0-configure.rule"
+		},
+		{
+			"file" : "/home/ubuntu/passive_radar/gnss-sdr/build/src/tests/gtest-1.8.0-prefix/src/gtest-1.8.0-stamp/gtest-1.8.0-build.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"gtest-1.8.0"
+		],
+		"name" : "gtest-1.8.0"
+	}
+}

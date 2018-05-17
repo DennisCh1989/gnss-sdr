@@ -1,0 +1,13 @@
+# Target labels
+ volk_gnsssdr_module
+# Source files and their labels
+/home/ubuntu/passive_radar/gnss-sdr/build/CMakeFiles/volk_gnsssdr_module
+/home/ubuntu/passive_radar/gnss-sdr/build/CMakeFiles/volk_gnsssdr_module.rule
+/home/ubuntu/passive_radar/gnss-sdr/build/CMakeFiles/volk_gnsssdr_module-complete.rule
+/home/ubuntu/passive_radar/gnss-sdr/build/volk_gnsssdr_module/src/volk_gnsssdr_module-stamp/volk_gnsssdr_module-install.rule
+/home/ubuntu/passive_radar/gnss-sdr/build/volk_gnsssdr_module/src/volk_gnsssdr_module-stamp/volk_gnsssdr_module-mkdir.rule
+/home/ubuntu/passive_radar/gnss-sdr/build/volk_gnsssdr_module/src/volk_gnsssdr_module-stamp/volk_gnsssdr_module-download.rule
+/home/ubuntu/passive_radar/gnss-sdr/build/volk_gnsssdr_module/src/volk_gnsssdr_module-stamp/volk_gnsssdr_module-update.rule
+/home/ubuntu/passive_radar/gnss-sdr/build/volk_gnsssdr_module/src/volk_gnsssdr_module-stamp/volk_gnsssdr_module-patch.rule
+/home/ubuntu/passive_radar/gnss-sdr/build/volk_gnsssdr_module/src/volk_gnsssdr_module-stamp/volk_gnsssdr_module-configure.rule
+/home/ubuntu/passive_radar/gnss-sdr/build/volk_gnsssdr_module/src/volk_gnsssdr_module-stamp/volk_gnsssdr_module-build.rule

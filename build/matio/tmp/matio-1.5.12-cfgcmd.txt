@@ -1,0 +1,1 @@
+cmd='/home/ubuntu/passive_radar/gnss-sdr/thirdparty/matio/matio-1.5.12/configure;--with-hdf5=/usr/lib/x86_64-linux-gnu/hdf5/serial;--with-zlib=/usr;--with-default-file-ver=7.3;--enable-mat73=yes;--prefix=<INSTALL_DIR>'
