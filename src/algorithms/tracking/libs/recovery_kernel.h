@@ -1,6 +1,7 @@
 
 #include <volk/volk.h>
 #include <memory>
+#include <string.h>
 
 class recovery_kernel
 {
@@ -12,8 +13,8 @@ class recovery_kernel
                  const lv_32fc_t corr_res,
                  std::shared_ptr<lv_32fc_t> ref_sig
                       );
-     void put(lv_32fc_t* out,bool valid);
-     void put(lv_32fc_t* out,int length);
+     void gen(lv_32fc_t* out,bool valid);
+     void put0s(lv_32fc_t* out,int length) {memset(out,0,sizeof(lv_32fc_t) * length);}
      recovery_kernel()  {}
      ~recovery_kernel() {}
    private:

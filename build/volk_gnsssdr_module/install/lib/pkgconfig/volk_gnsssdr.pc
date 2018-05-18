@@ -1,0 +1,14 @@
+prefix=/home/ubuntu/passive_radar/gnss-sdr/build/volk_gnsssdr_module/install
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+LV_CXXFLAGS=
+
+
+Name: volk_gnsssdr
+Description: VOLK_GNSSSDR: Vector Optimized Library of Kernels specific for GNSS-SDR
+Requires:
+Version: 0.0.9.git
+Libs: -L${libdir} -lvolk_gnsssdr
+Cflags: -I${includedir} ${LV_CXXFLAGS}
+

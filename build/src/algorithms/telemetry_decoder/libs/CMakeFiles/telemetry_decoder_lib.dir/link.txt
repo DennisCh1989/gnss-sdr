@@ -1,0 +1,2 @@
+/usr/bin/ar qc libtelemetry_decoder_lib.a  CMakeFiles/telemetry_decoder_lib.dir/gps_l1_ca_subframe_fsm.cc.o CMakeFiles/telemetry_decoder_lib.dir/viterbi_decoder.cc.o
+/usr/bin/ranlib libtelemetry_decoder_lib.a

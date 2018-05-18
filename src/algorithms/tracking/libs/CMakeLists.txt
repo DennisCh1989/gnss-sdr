@@ -43,6 +43,7 @@ set(TRACKING_LIB_SOURCES
      tracking_discriminators.cc
      tracking_FLL_PLL_filter.cc
      tracking_loop_filter.cc
+     recovery_kernel.cc
 )
 
 if(ENABLE_FPGA)
@@ -81,4 +82,10 @@ if(VOLK_GNSSSDR_FOUND)
     add_dependencies(tracking_lib glog-${glog_RELEASE})
 else(VOLK_GNSSSDR_FOUND)
     add_dependencies(tracking_lib glog-${glog_RELEASE} volk_gnsssdr_module)
+endif()
+
+if(VOLK_FOUND)
+    add_dependencies(tracking_lib glog-${glog_RELEASE})
+else(VOLK_FOUND)
+    add_dependencies(tracking_lib glog-${glog_RELEASE} volk_module)
 endif()

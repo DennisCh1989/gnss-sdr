@@ -1,5 +1,6 @@
 #include "recovery_kernel.h"
 #include <cmath>
+#include <complex>
 
 
 void recovery_kernel::set_params(
@@ -17,12 +18,7 @@ void recovery_kernel::set_params(
   d_corr_result = corr_result;
 }
 
-void recovery_kernel::put(lv_32fc_t* out,int length)
-{
-  memset(out,0,sizeof(lv_32fc_t) * length);
-}
-
-void recovery_kernel::put(lv_32fc_t* out, bool valid)
+void recovery_kernel::gen(lv_32fc_t* out, bool valid)
 {
   if (valid)
     {
@@ -38,21 +34,19 @@ void recovery_kernel::put(lv_32fc_t* out, bool valid)
 	    
 	    volk_32fc_s32fc_multiply_32fc(out,
 					  in,
-					  d_corr_result/ real(result),
+					  d_corr_result/ real(norm),
 					  d_chunk_length
 					 );
 	    
 	    volk_32fc_s32fc_x2_rotator_32fc(out,
 					    out,
-					    &d_init_phase,
+					    d_init_phase,
 					    &d_incm_phase,
 					    d_chunk_length
 					   );
     }
   else
-    {
-      put(out, d_chunk_length);
-    }
+    put0s(out, d_chunk_length); 
 }
 
 
