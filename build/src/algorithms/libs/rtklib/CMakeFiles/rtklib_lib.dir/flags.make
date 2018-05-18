@@ -4,7 +4,7 @@
 # compile CXX with /usr/bin/c++
 CXX_FLAGS =   -std=c++11 -Wall -Wextra -march=native -mfpmath=sse -O3 -DNDEBUG   -fvisibility=hidden -pthread
 
-CXX_DEFINES = -DGNSS_SDR_VERSION=\"0.0.9.git-passive_radar-1f65e2c\" -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGE_FILES
+CXX_DEFINES = -DGNSS_SDR_VERSION=\"0.0.9.git-passive_radar-2fad917\" -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGE_FILES
 
 CXX_INCLUDES = -I/home/ubuntu/passive_radar/gnss-sdr/src/algorithms/libs/rtklib -I/home/ubuntu/passive_radar/gnss-sdr/src/core/system_parameters -I/home/ubuntu/passive_radar/gnss-sdr/src/core/interfaces -I/home/ubuntu/passive_radar/gnss-sdr/src/core/receiver -I/usr/include/glog 
 

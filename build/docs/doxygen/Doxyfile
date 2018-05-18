@@ -34,7 +34,7 @@ PROJECT_NAME           = "GNSS-SDR"
 # This could be handy for archiving the generated documentation or
 # if some version control system is used.
 
-PROJECT_NUMBER         = 0.0.9.git-passive_radar-1f65e2c
+PROJECT_NUMBER         = 0.0.9.git-passive_radar-2fad917
 
 # Using the PROJECT_BRIEF tag one can provide an optional one line description
 # for a project that appears at the top of each page and should give viewer a

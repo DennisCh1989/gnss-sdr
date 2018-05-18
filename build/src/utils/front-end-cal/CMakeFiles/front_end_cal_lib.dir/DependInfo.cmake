@@ -11,7 +11,7 @@ set(CMAKE_CXX_COMPILER_ID "GNU")
 # Preprocessor definitions for this target.
 set(CMAKE_TARGET_DEFINITIONS_CXX
   "GNSSSDR_INSTALL_DIR=\"/usr/local\""
-  "GNSS_SDR_VERSION=\"0.0.9.git-passive_radar-1f65e2c\""
+  "GNSS_SDR_VERSION=\"0.0.9.git-passive_radar-2fad917\""
   "_FILE_OFFSET_BITS=64"
   "_LARGEFILE_SOURCE"
   "_LARGE_FILES"
