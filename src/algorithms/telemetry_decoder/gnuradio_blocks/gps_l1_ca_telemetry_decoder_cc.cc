@@ -35,6 +35,7 @@
 #include <glog/logging.h>
 #include <gnuradio/io_signature.h>
 #include <volk_gnsssdr/volk_gnsssdr.h>
+#include "recovery_kernel.h"
 
 
 #ifndef _rotl
@@ -42,6 +43,7 @@
 #endif
 
 using google::LogMessage;
+extern recovery_kernel rec_ker;
 
 gps_l1_ca_telemetry_decoder_cc_sptr
 gps_l1_ca_make_telemetry_decoder_cc(const Gnss_Satellite &satellite, bool dump)
@@ -187,7 +189,6 @@ void gps_l1_ca_telemetry_decoder_cc::set_channel(int channel)
                 }
         }
 }
-
 
 int gps_l1_ca_telemetry_decoder_cc::general_work(int noutput_items __attribute__((unused)), gr_vector_int &ninput_items __attribute__((unused)),
     gr_vector_const_void_star &input_items, gr_vector_void_star &output_items)
@@ -352,6 +353,7 @@ int gps_l1_ca_telemetry_decoder_cc::general_work(int noutput_items __attribute__
                                                     // get ephemeris object for this SV (mandatory)
                                                     std::shared_ptr<Gps_Ephemeris> tmp_obj = std::make_shared<Gps_Ephemeris>(d_GPS_FSM.d_nav.get_ephemeris());
                                                     this->message_port_pub(pmt::mp("telemetry"), pmt::make_any(tmp_obj));
+						    rec_ker.subframe3 = std::shared_ptr<float>(new float[10]);
                                                 }
                                             break;
                                         case 4:  // Possible IONOSPHERE and UTC model update (page 18)

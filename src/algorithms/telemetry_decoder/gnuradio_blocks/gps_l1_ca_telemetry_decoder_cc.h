@@ -40,9 +40,8 @@
 #include <string>
 #include <boost/circular_buffer.hpp>
 
-class gps_l1_ca_telemetry_decoder_cc;
 
-extern std::shared_ptr<float> pppp;
+class gps_l1_ca_telemetry_decoder_cc;
 
 typedef boost::shared_ptr<gps_l1_ca_telemetry_decoder_cc> gps_l1_ca_telemetry_decoder_cc_sptr;
 
