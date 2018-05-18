@@ -1,0 +1,40 @@
+file(REMOVE_RECURSE
+  "../include/volk_gnsssdr/volk_gnsssdr.h"
+  "volk_gnsssdr.c"
+  "../include/volk_gnsssdr/volk_gnsssdr_typedefs.h"
+  "../include/volk_gnsssdr/volk_gnsssdr_cpu.h"
+  "volk_gnsssdr_cpu.c"
+  "../include/volk_gnsssdr/volk_gnsssdr_config_fixed.h"
+  "volk_gnsssdr_machines.h"
+  "volk_gnsssdr_machines.c"
+  "volk_gnsssdr_machine_generic.c"
+  "volk_gnsssdr_machine_sse2_64_mmx.c"
+  "volk_gnsssdr_machine_sse3_64_mmx.c"
+  "volk_gnsssdr_machine_ssse3_64_mmx.c"
+  "volk_gnsssdr_machine_sse4_a_64_mmx.c"
+  "volk_gnsssdr_machine_sse4_1_64_mmx.c"
+  "volk_gnsssdr_machine_sse4_2_64_mmx.c"
+  "volk_gnsssdr_machine_avx_64_mmx.c"
+  "volk_gnsssdr_machine_avx2_64_mmx.c"
+  "CMakeFiles/volk_gnsssdr_obj.dir/constants.c.o"
+  "CMakeFiles/volk_gnsssdr_obj.dir/volk_gnsssdr_prefs.c.o"
+  "CMakeFiles/volk_gnsssdr_obj.dir/volk_gnsssdr_rank_archs.c.o"
+  "CMakeFiles/volk_gnsssdr_obj.dir/volk_gnsssdr_malloc.c.o"
+  "CMakeFiles/volk_gnsssdr_obj.dir/volk_gnsssdr.c.o"
+  "CMakeFiles/volk_gnsssdr_obj.dir/volk_gnsssdr_cpu.c.o"
+  "CMakeFiles/volk_gnsssdr_obj.dir/volk_gnsssdr_machines.c.o"
+  "CMakeFiles/volk_gnsssdr_obj.dir/volk_gnsssdr_machine_generic.c.o"
+  "CMakeFiles/volk_gnsssdr_obj.dir/volk_gnsssdr_machine_sse2_64_mmx.c.o"
+  "CMakeFiles/volk_gnsssdr_obj.dir/volk_gnsssdr_machine_sse3_64_mmx.c.o"
+  "CMakeFiles/volk_gnsssdr_obj.dir/volk_gnsssdr_machine_ssse3_64_mmx.c.o"
+  "CMakeFiles/volk_gnsssdr_obj.dir/volk_gnsssdr_machine_sse4_a_64_mmx.c.o"
+  "CMakeFiles/volk_gnsssdr_obj.dir/volk_gnsssdr_machine_sse4_1_64_mmx.c.o"
+  "CMakeFiles/volk_gnsssdr_obj.dir/volk_gnsssdr_machine_sse4_2_64_mmx.c.o"
+  "CMakeFiles/volk_gnsssdr_obj.dir/volk_gnsssdr_machine_avx_64_mmx.c.o"
+  "CMakeFiles/volk_gnsssdr_obj.dir/volk_gnsssdr_machine_avx2_64_mmx.c.o"
+)
+
+# Per-language clean rules from dependency scanning.
+foreach(lang C)
+  include(CMakeFiles/volk_gnsssdr_obj.dir/cmake_clean_${lang}.cmake OPTIONAL)
+endforeach()

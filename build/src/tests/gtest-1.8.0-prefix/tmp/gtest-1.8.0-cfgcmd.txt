@@ -1,0 +1,1 @@
+cmd='/usr/bin/cmake;-DCMAKE_CXX_COMPILER=/usr/bin/c++;-DCMAKE_C_COMPILER=/usr/bin/cc;-DBUILD_GTEST=ON;-DBUILD_GMOCK=OFF;-GUnix Makefiles;/home/ubuntu/passive_radar/gnss-sdr/src/tests/../../thirdparty/gtest/gtest-1.8.0'

@@ -1,0 +1,10 @@
+prefix=/home/ubuntu/passive_radar/gnss-sdr/build/matio
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: MATIO
+Description: MATIO Library
+Version: 1.5.12
+Libs: -L${libdir} -lmatio -L/usr/lib/x86_64-linux-gnu/hdf5/serial/lib -lhdf5 -L/usr/lib -lz
+Cflags: -I${includedir} -I/usr/lib/x86_64-linux-gnu/hdf5/serial/include -I/usr/include

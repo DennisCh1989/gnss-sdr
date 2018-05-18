@@ -1,0 +1,24 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/ubuntu/passive_radar/gnss-sdr/src/algorithms/libs/gnss_sdr_flags.cc
+gnss_sdr_flags.h
+/home/ubuntu/passive_radar/gnss-sdr/src/algorithms/libs/gnss_sdr_flags.h
+boost/filesystem/operations.hpp
+-
+cstdint
+-
+iostream
+-
+string
+-
+
+/home/ubuntu/passive_radar/gnss-sdr/src/algorithms/libs/gnss_sdr_flags.h
+gflags/gflags.h
+-
+
