@@ -38,6 +38,7 @@
 
 #include <complex>
 #include <memory>
+#include <volk/volk.h>
 
 /*!
  * \brief Class that implements carrier wipe-off and correlators.
