@@ -1,2 +1,0 @@
-/usr/bin/ar qc libchannel_fsm.a  CMakeFiles/channel_fsm.dir/channel_fsm.cc.o CMakeFiles/channel_fsm.dir/channel_msg_receiver_cc.cc.o
-/usr/bin/ranlib libchannel_fsm.a

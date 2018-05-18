@@ -1,2 +1,0 @@
-/usr/bin/ar qc libgnss_rx.a  CMakeFiles/gnss_rx.dir/control_thread.cc.o CMakeFiles/gnss_rx.dir/control_message_factory.cc.o CMakeFiles/gnss_rx.dir/file_configuration.cc.o CMakeFiles/gnss_rx.dir/gnss_block_factory.cc.o CMakeFiles/gnss_rx.dir/gnss_flowgraph.cc.o CMakeFiles/gnss_rx.dir/in_memory_configuration.cc.o
-/usr/bin/ranlib libgnss_rx.a

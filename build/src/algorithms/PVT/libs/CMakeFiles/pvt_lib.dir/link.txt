@@ -1,2 +1,0 @@
-/usr/bin/ar qc libpvt_lib.a  CMakeFiles/pvt_lib.dir/pvt_solution.cc.o CMakeFiles/pvt_lib.dir/ls_pvt.cc.o CMakeFiles/pvt_lib.dir/hybrid_ls_pvt.cc.o CMakeFiles/pvt_lib.dir/kml_printer.cc.o CMakeFiles/pvt_lib.dir/gpx_printer.cc.o CMakeFiles/pvt_lib.dir/rinex_printer.cc.o CMakeFiles/pvt_lib.dir/nmea_printer.cc.o CMakeFiles/pvt_lib.dir/rtcm_printer.cc.o CMakeFiles/pvt_lib.dir/geojson_printer.cc.o CMakeFiles/pvt_lib.dir/rtklib_solver.cc.o
-/usr/bin/ranlib libpvt_lib.a
