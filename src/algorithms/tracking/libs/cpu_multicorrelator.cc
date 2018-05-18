@@ -129,8 +129,7 @@ bool cpu_multicorrelator::Carrier_wipeoff_multicorrelator_resampler(
 
 std::shared_ptr<lv_32fc_t> cpu_multicorrelator::get_ref()
 {
-  std::shared_ptr<lv_32fc_t> d (d_local_codes_resampled[1]);
-  return  d; 
+  return  std::shared_ptr<lv_32fc_t> (d_local_codes_resampled[1]); 
 }
 
 
