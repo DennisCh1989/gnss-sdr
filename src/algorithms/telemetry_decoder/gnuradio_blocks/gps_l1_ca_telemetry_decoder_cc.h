@@ -42,6 +42,8 @@
 
 class gps_l1_ca_telemetry_decoder_cc;
 
+extern std::shared_ptr<float> pppp;
+
 typedef boost::shared_ptr<gps_l1_ca_telemetry_decoder_cc> gps_l1_ca_telemetry_decoder_cc_sptr;
 
 gps_l1_ca_telemetry_decoder_cc_sptr
