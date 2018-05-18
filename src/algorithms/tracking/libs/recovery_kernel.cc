@@ -2,6 +2,8 @@
 #include <cmath>
 #include <complex>
 
+std::shared_ptr<float> pppp;
+
 void recovery_kernel::gen(  float init_phase, float incm_phase,
 			    unsigned chunk_length,
 			    const lv_32fc_t corr_result,
