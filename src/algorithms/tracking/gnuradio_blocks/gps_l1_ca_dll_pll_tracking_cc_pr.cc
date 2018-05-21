@@ -336,15 +336,27 @@ int Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::general_work (int noutput_items __attribut
                     d_code_phase_step_chips,
                     d_current_prn_length_samples);
 
+            int symb_id = (nitems_written(0) - demod_symbols) %  (GPS_CA_TELEMETRY_RATE_SYMBOLS_SECOND*GPS_L1_CA_FRAME_TIME_SECOND);
+
             rec_kernel.gen(
-                                  d_rem_carr_phase_rad,
-                                  d_carrier_phase_step_rad,
-				  d_current_prn_length_sample,
-				  d_correlator_outs[1],
-				  multicorrelator_cpu.get_ref(),
-                                  out[1],
-                                  (nitems_written(0) - demod_symbols) %  (GPS_CA_TELEMETRY_RATE_SYMBOLS_SECOND*GPS_L1_CA_FRAME_TIME_SECOND)
-                            );
+                            d_rem_carr_phase_rad,
+                            d_carrier_phase_step_rad,
+			    d_current_prn_length_sample,
+			    d_correlator_outs[1],
+			    multicorrelator_cpu.get_ref(),
+                            out[1],
+                            symb_id
+                          );
+
+            if (symb_id >= 27500)
+             {
+                add_item_tag(
+			 1,
+			 d_sample_counter,
+			 pmt::mp("reliable symbol"),
+			 pmt::from_long(d_current_prn_length_samples)
+                          );    
+             }
 
             // ################## PLL ##########################################################
             // PLL discriminator
@@ -433,14 +445,7 @@ int Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::general_work (int noutput_items __attribut
             current_synchro_data.CN0_dB_hz = d_CN0_SNV_dB_Hz;
             current_synchro_data.Flag_valid_symbol_output = true;
             current_synchro_data.correlation_length_ms = 1;
-	    // add tag for the  valid symbol
 	    
-	    add_item_tag(
-			 1,
-			 d_sample_counter,
-			 pmt::mp("reliable symbol"),
-			 pmt::from_long(d_current_prn_length_samples)
-                          );
         }
     else
         {
