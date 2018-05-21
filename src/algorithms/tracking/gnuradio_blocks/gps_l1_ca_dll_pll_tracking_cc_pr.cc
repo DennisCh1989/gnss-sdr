@@ -461,7 +461,10 @@ int Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::general_work (int noutput_items __attribut
 
     //assign the GNURadio block output data
     *out[0] = current_synchro_data;
-    rec_kernel.put(out[1],current_synchro_data.Flag_valid_symbol_output);
+    if (current_synchro_data.Flag_valid_symbol_output == false)
+     {
+        rec_kernel.put0s(out[1],d_current_prn_length_samples);
+     }
     if(d_dump)
         {
             // MULTIPLEXED FILE RECORDING - Record results to file
