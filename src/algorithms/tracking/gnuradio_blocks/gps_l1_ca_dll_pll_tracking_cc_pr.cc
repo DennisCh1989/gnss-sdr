@@ -348,7 +348,7 @@ int Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::general_work (int noutput_items __attribut
                             symb_id
                           );
 
-            if (symb_id >= 27500)
+            if (symb_id >= 28000)
              {
                 add_item_tag(
 			 1,
