@@ -44,6 +44,7 @@
 
 using google::LogMessage;
 extern recovery_kernel rec_ker;
+int demod_symbols;
 
 gps_l1_ca_telemetry_decoder_cc_sptr
 gps_l1_ca_make_telemetry_decoder_cc(const Gnss_Satellite &satellite, bool dump)
@@ -354,6 +355,7 @@ int gps_l1_ca_telemetry_decoder_cc::general_work(int noutput_items __attribute__
                                                     std::shared_ptr<Gps_Ephemeris> tmp_obj = std::make_shared<Gps_Ephemeris>(d_GPS_FSM.d_nav.get_ephemeris());
                                                     this->message_port_pub(pmt::mp("telemetry"), pmt::make_any(tmp_obj));
 						    rec_ker.subframe3 = std::shared_ptr<float>(new float[10]);
+                                                    demod_symbols = nitems_read(0);
                                                 }
                                             break;
                                         case 4:  // Possible IONOSPHERE and UTC model update (page 18)
