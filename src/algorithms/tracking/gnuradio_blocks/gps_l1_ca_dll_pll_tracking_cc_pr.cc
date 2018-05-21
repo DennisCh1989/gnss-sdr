@@ -342,7 +342,8 @@ int Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::general_work (int noutput_items __attribut
 				  d_current_prn_length_sample,
 				  d_correlator_outs[1],
 				  multicorrelator_cpu.get_ref(),
-                                  (nitems_written(0) - demod_symbols) %  (GPS_CA_TELEMETRY_RATE_SYMBOLS_SECOND*GPS_FRAME_DUR_SECOND)
+                                  out[1],
+                                  (nitems_written(0) - demod_symbols) %  (GPS_CA_TELEMETRY_RATE_SYMBOLS_SECOND*GPS_FRAME_TIME_SECOND)
                             );
 
             // ################## PLL ##########################################################
