@@ -23,7 +23,7 @@ void    recovery_kernel::gen(  float init_phase, float incm_phase,
        d_ampl_est *= REC_FAC;
      }
   
-   if (symb_id >= 27500) 
+   if (symb_id >= 28000) 
      {
         volk_32fc_conjugate_32fc(out, ref_sig.get(),chunk_length);
 	    
