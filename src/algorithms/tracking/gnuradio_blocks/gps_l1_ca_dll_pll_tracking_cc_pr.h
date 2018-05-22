@@ -82,8 +82,8 @@ public:
     void forecast (int noutput_items, gr_vector_int &ninput_items_required);
 
 private:
-    friend gps_l1_ca_dll_pll_tracking_cc_sptr
-    gps_l1_ca_dll_pll_make_tracking_cc(long if_freq,
+    friend gps_l1_ca_dll_pll_tracking_cc_pr_sptr
+    gps_l1_ca_dll_pll_make_tracking_cc_pr(long if_freq,
             long fs_in, unsigned
             int vector_length,
             bool dump,
@@ -92,7 +92,7 @@ private:
             float dll_bw_hz,
             float early_late_space_chips);
 
-    Gps_L1_Ca_Dll_Pll_Tracking_cc(long if_freq,
+    Gps_L1_Ca_Dll_Pll_Tracking_cc_pr(long if_freq,
             long fs_in, unsigned
             int vector_length,
             bool dump,

@@ -101,7 +101,7 @@ Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::Gps_L1_Ca_Dll_Pll_Tracking_cc_pr(
         float dll_bw_hz,
         float early_late_space_chips) :
         gr::block("Gps_L1_Ca_Dll_Pll_Tracking_cc_pr", gr::io_signature::make(1, 1, sizeof(gr_complex)),
-		  gr::io_signature::make2(2, 2, sizeof(Gnss_Synchro),sizeof(gr_complex))
+		  gr::io_signature::make2(2, 2, sizeof(Gnss_Synchro),sizeof(gr_complex)))
 {
     // Telemetry bit synchronization message port input
     this->message_port_register_in(pmt::mp("preamble_timestamp_s"));
@@ -312,7 +312,7 @@ int Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::general_work (int noutput_items __attribut
                     acq_to_trk_delay_samples = d_sample_counter - d_acq_sample_stamp;
                     acq_trk_shif_correction_samples = d_current_prn_length_samples - fmod(static_cast<float>(acq_to_trk_delay_samples), static_cast<float>(d_current_prn_length_samples));
                     samples_offset = round(d_acq_code_phase_samples + acq_trk_shif_correction_samples);
-                    current_synchro_data.Tracking_timestamp_secs = (static_cast<double>(d_sample_counter) + static_cast<double>(d_rem_code_phase_samples)) / static_cast<double>(d_fs_in);
+                    //current_synchro_data.Tracking_timestamp_secs = (static_cast<double>(d_sample_counter) + static_cast<double>(d_rem_code_phase_samples)) / static_cast<double>(d_fs_in);
                     d_sample_counter = d_sample_counter + samples_offset; // count for the processed samples
                     d_pull_in = false;
                     // take into account the carrier cycles accumulated in the pull in signal alignment
@@ -320,7 +320,7 @@ int Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::general_work (int noutput_items __attribut
                     current_synchro_data.Carrier_phase_rads = d_acc_carrier_phase_rad;
                     current_synchro_data.Carrier_Doppler_hz = d_carrier_doppler_hz;
                     *out[0] = current_synchro_data;
-		    rec_kernel.put(out[1],samples_offset);
+		    rec_kernel.put0s((gr_complex*) output_items[1],samples_offset);
                     consume_each(samples_offset); // shift input to perform alignment with local replica
 		    produce (0,1);
                     produce (1,samples_offset);
@@ -341,10 +341,10 @@ int Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::general_work (int noutput_items __attribut
             rec_kernel.gen(
                             d_rem_carr_phase_rad,
                             d_carrier_phase_step_rad,
-			    d_current_prn_length_sample,
+			    d_current_prn_length_samples,
 			    d_correlator_outs[1],
 			    multicorrelator_cpu.get_ref(),
-                            out[1],
+                            (gr_complex *)output_items[1],
                             symb_id
                           );
 
@@ -412,7 +412,7 @@ int Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::general_work (int noutput_items __attribut
                 {
                     d_cn0_estimation_counter = 0;
                     // Code lock indicator
-                    d_CN0_SNV_dB_Hz = cn0_svn_estimator(d_Prompt_buffer, CN0_ESTIMATION_SAMPLES, d_fs_in, GPS_L1_CA_CODE_LENGTH_CHIPS);
+                    d_CN0_SNV_dB_Hz = cn0_svn_estimator(d_Prompt_buffer, CN0_ESTIMATION_SAMPLES, d_fs_in);
                     // Carrier lock indicator
                     d_carrier_lock_test = carrier_lock_detector(d_Prompt_buffer, CN0_ESTIMATION_SAMPLES);
                     // Loss of lock detection
@@ -438,8 +438,8 @@ int Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::general_work (int noutput_items __attribut
             current_synchro_data.Prompt_Q = static_cast<double>((d_correlator_outs[1]).imag());
 
             // Tracking_timestamp_secs is aligned with the CURRENT PRN start sample
-            current_synchro_data.Tracking_timestamp_secs = (static_cast<double>(d_sample_counter + d_current_prn_length_samples) + static_cast<double>(d_rem_code_phase_samples)) / static_cast<double>(d_fs_in);
-            current_synchro_data.Rem_code_phase_secs = d_rem_code_phase_samples / static_cast<double>(d_fs_in);
+	    // current_synchro_data.Tracking_timestamp_secs = (static_cast<double>(d_sample_counter + d_current_prn_length_samples) + static_cast<double>(d_rem_code_phase_samples)) / static_cast<double>(d_fs_in);
+	    // current_synchro_data.Rem_code_phase_secs = d_rem_code_phase_samples / static_cast<double>(d_fs_in);
             current_synchro_data.Carrier_phase_rads = d_acc_carrier_phase_rad;
             current_synchro_data.Carrier_Doppler_hz = d_carrier_doppler_hz;
             current_synchro_data.CN0_dB_hz = d_CN0_SNV_dB_Hz;
@@ -454,8 +454,8 @@ int Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::general_work (int noutput_items __attribut
                     d_correlator_outs[n] = gr_complex(0,0);
                 }
 
-            current_synchro_data.Tracking_timestamp_secs = (static_cast<double>(d_sample_counter + d_current_prn_length_samples) + static_cast<double>(d_rem_code_phase_samples)) / static_cast<double>(d_fs_in);
-            current_synchro_data.Rem_code_phase_secs = d_rem_code_phase_samples / static_cast<double>(d_fs_in);
+	    // current_synchro_data.Tracking_timestamp_secs = (static_cast<double>(d_sample_counter + d_current_prn_length_samples) + static_cast<double>(d_rem_code_phase_samples)) / static_cast<double>(d_fs_in);
+	    // current_synchro_data.Rem_code_phase_secs = d_rem_code_phase_samples / static_cast<double>(d_fs_in);
             current_synchro_data.System = {'G'};
         }
 
@@ -463,7 +463,7 @@ int Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::general_work (int noutput_items __attribut
     *out[0] = current_synchro_data;
     if (current_synchro_data.Flag_valid_symbol_output == false)
      {
-        rec_kernel.put0s(out[1],d_current_prn_length_samples);
+       rec_kernel.put0s((gr_complex *) output_items[1],d_current_prn_length_samples);
      }
     if(d_dump)
         {
