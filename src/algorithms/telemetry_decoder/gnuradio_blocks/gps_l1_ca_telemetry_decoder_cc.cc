@@ -35,7 +35,6 @@
 #include <glog/logging.h>
 #include <gnuradio/io_signature.h>
 #include <volk_gnsssdr/volk_gnsssdr.h>
-#include "recovery_kernel.h"
 
 
 #ifndef _rotl
@@ -43,9 +42,6 @@
 #endif
 
 using google::LogMessage;
-extern recovery_kernel rec_ker;
-int demod_symbols;
-bool demod_state;
 
 gps_l1_ca_telemetry_decoder_cc_sptr
 gps_l1_ca_make_telemetry_decoder_cc(const Gnss_Satellite &satellite, bool dump)
@@ -53,12 +49,40 @@ gps_l1_ca_make_telemetry_decoder_cc(const Gnss_Satellite &satellite, bool dump)
     return gps_l1_ca_telemetry_decoder_cc_sptr(new gps_l1_ca_telemetry_decoder_cc(satellite, dump));
 }
 
+pmt::pmt_t gps_l1_ca_telemetry_decoder_cc :: get_subframe (char * subframe,double sign)
+{
+  int pos =0;
+  size_t cnt =0;
+  pmt::pmt_t subframe3 = pmt::make_vector(GPS_SUBFRAME_MS,pmt::from_double(0));
+  for (int i =0;i < GPS_SUBFRAME_LENGTH;i++)
+    {
+      uint8_t byte = subframe[i];
+      for (int j =0;j < 8;j++)
+	{
+	  int pos_in_4bytes = pos % 32;
+	  if (pos_in_4bytes >=2)
+	    {
+	      if (byte & 0x80)
+		pmt::vector_set(subframe3,cnt,pmt::from_double(sign));
+	      else
+	        pmt::vector_set(subframe3,cnt,pmt::from_double(sign));
+	      cnt++;
+	    }
+	  byte <<=1;
+	  pos++;
+	}
+    }
+
+  return subframe3;
+}
 
 gps_l1_ca_telemetry_decoder_cc::gps_l1_ca_telemetry_decoder_cc(
     const Gnss_Satellite &satellite,
     bool dump) : gr::block("gps_navigation_cc", gr::io_signature::make(1, 1, sizeof(Gnss_Synchro)),
                      gr::io_signature::make(1, 1, sizeof(Gnss_Synchro)))
 {
+    // bits of gps subframe 3  for passive radar will be passed to tracking
+    this->message_port_register_out(pmt::mp("events"));
     // Ephemeris data port out
     this->message_port_register_out(pmt::mp("telemetry"));
     // initialize internal vars
@@ -263,7 +287,6 @@ int gps_l1_ca_telemetry_decoder_cc::general_work(int noutput_items __attribute__
                             if (!d_flag_frame_sync)
                                 {
                                     d_flag_frame_sync = true;
-				    demod_state = true;
                                     if (corr_value < 0)
                                         {
                                             flag_PLL_180_deg_phase_locked = true;  // PLL is locked to opposite phase!
@@ -294,7 +317,12 @@ int gps_l1_ca_telemetry_decoder_cc::general_work(int noutput_items __attribute__
                             DLOG(INFO) << "Lost of frame sync SAT " << this->d_satellite << " preamble_diff= " << preamble_diff_ms;
                             d_stat = 0;  //lost of frame sync
                             d_flag_frame_sync = false;
-			    demod_state = false;
+                            pmt::pmt_t tuple = pmt::make_tuple(
+								 pmt::from_long(nitems_read(0)),
+						                 pmt::from_bool(false),
+						                 pmt::make_vector(0,pmt::from_double(0))
+                                                              );
+			    this ->message_port_pub(pmt::mp("events"),tuple);
                             flag_TOW_set = false;
                             d_make_correlation = true;
                             d_symbol_counter_corr = 0;
@@ -337,13 +365,14 @@ int gps_l1_ca_telemetry_decoder_cc::general_work(int noutput_items __attribute__
                         }
                     /* Check that the 2 most recently logged words pass parity. Have to first
                       invert the data bits according to bit 30 of the previous word. */
+
+		    double sign = 1;
                     if (d_GPS_frame_4bytes & 0x40000000)
                         {
                             d_GPS_frame_4bytes ^= 0x3FFFFFC0;  // invert the data bits (using XOR)
-			    rec_ker.put_sign(-1);
+			    sign = -1;
                         }
-		    else
-		      rec_ker.put_sign(1);
+		    
                     if (gps_l1_ca_telemetry_decoder_cc::gps_word_parityCheck(d_GPS_frame_4bytes))
                         {
                             memcpy(&d_GPS_FSM.d_GPS_frame_4bytes, &d_GPS_frame_4bytes, sizeof(char) * 4);
@@ -360,8 +389,12 @@ int gps_l1_ca_telemetry_decoder_cc::general_work(int noutput_items __attribute__
                                                     // get ephemeris object for this SV (mandatory)
                                                     std::shared_ptr<Gps_Ephemeris> tmp_obj = std::make_shared<Gps_Ephemeris>(d_GPS_FSM.d_nav.get_ephemeris());
                                                     this->message_port_pub(pmt::mp("telemetry"), pmt::make_any(tmp_obj));
-                                                    demod_symbols = nitems_read(0);
-						    rec_ker.get_subframe(d_GPS_FSM.d_subframe);
+						    pmt::pmt_t tuple = pmt::make_tuple(
+										 pmt::from_long(nitems_read(0)),
+						                                 pmt::from_bool(true),
+										 get_subframe(d_GPS_FSM.d_subframe,sign)
+                                                                                      );
+						    this ->message_port_pub(pmt::mp("events"),tuple);
                                                 }
                                             break;
                                         case 4:  // Possible IONOSPHERE and UTC model update (page 18)

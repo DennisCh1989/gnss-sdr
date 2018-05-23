@@ -39,6 +39,7 @@
 #include <fstream>
 #include <string>
 #include <boost/circular_buffer.hpp>
+#include <pmt/pmt.h>
 
 
 class gps_l1_ca_telemetry_decoder_cc;
@@ -99,7 +100,8 @@ private:
     bool d_flag_preamble;
     bool d_flag_new_tow_available;
     int d_word_number;
-
+    pmt::pmt_t get_subframe (char * subframe, double sign);
+    
     // output averaging and decimation
     int d_average_count;
     int d_decimation_output_factor;
