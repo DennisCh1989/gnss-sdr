@@ -6,9 +6,6 @@
 
 const int START_EST = 4; //where we start to pass tags
 
-
-recovery_kernel rec_ker;
-
 bool    recovery_kernel::gen(  float init_phase, float incm_phase,
 			       unsigned chunk_length,
 			       const lv_32fc_t corr_result,
@@ -44,29 +41,7 @@ bool    recovery_kernel::gen(  float init_phase, float incm_phase,
    return false;
 }
 
-void recovery_kernel :: get_subframe (char * subframe)
-{
-  int pos =0;
-  int cnt =0;
-  for (int i =0;i < GPS_SUBFRAME_LENGTH;i++)
-    {
-      uint8_t byte = subframe[i];
-      for (int j =0;j < 8;j++)
-	{
-	  int pos_in_4bytes = pos % 32;
-	  if (pos_in_4bytes >=2)
-	    {
-	      if (byte & 0x80)
-		subframe3[cnt] = sign_flag;
-	      else
-		subframe3[cnt] = -sign_flag;
-	      cnt++;
-	    }
-	  byte <<=1;
-	  pos++;
-	}
-    }
-}
+
 
 
 
