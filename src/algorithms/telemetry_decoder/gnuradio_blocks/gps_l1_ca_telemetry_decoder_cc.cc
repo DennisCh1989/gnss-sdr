@@ -340,7 +340,10 @@ int gps_l1_ca_telemetry_decoder_cc::general_work(int noutput_items __attribute__
                     if (d_GPS_frame_4bytes & 0x40000000)
                         {
                             d_GPS_frame_4bytes ^= 0x3FFFFFC0;  // invert the data bits (using XOR)
+			    rec_ker.put_sign(-1);
                         }
+		    else
+		      rec_ker.put_sign(1);
                     if (gps_l1_ca_telemetry_decoder_cc::gps_word_parityCheck(d_GPS_frame_4bytes))
                         {
                             memcpy(&d_GPS_FSM.d_GPS_frame_4bytes, &d_GPS_frame_4bytes, sizeof(char) * 4);
@@ -357,8 +360,8 @@ int gps_l1_ca_telemetry_decoder_cc::general_work(int noutput_items __attribute__
                                                     // get ephemeris object for this SV (mandatory)
                                                     std::shared_ptr<Gps_Ephemeris> tmp_obj = std::make_shared<Gps_Ephemeris>(d_GPS_FSM.d_nav.get_ephemeris());
                                                     this->message_port_pub(pmt::mp("telemetry"), pmt::make_any(tmp_obj));
-						    rec_ker.subframe3 = std::shared_ptr<float>(new float[10]);
                                                     demod_symbols = nitems_read(0);
+						    rec_ker.get_subframe(d_GPS_FSM.d_subframe);
                                                 }
                                             break;
                                         case 4:  // Possible IONOSPHERE and UTC model update (page 18)
