@@ -45,6 +45,7 @@
 using google::LogMessage;
 extern recovery_kernel rec_ker;
 int demod_symbols;
+bool demod_state;
 
 gps_l1_ca_telemetry_decoder_cc_sptr
 gps_l1_ca_make_telemetry_decoder_cc(const Gnss_Satellite &satellite, bool dump)
@@ -262,6 +263,7 @@ int gps_l1_ca_telemetry_decoder_cc::general_work(int noutput_items __attribute__
                             if (!d_flag_frame_sync)
                                 {
                                     d_flag_frame_sync = true;
+				    demod_state = true;
                                     if (corr_value < 0)
                                         {
                                             flag_PLL_180_deg_phase_locked = true;  // PLL is locked to opposite phase!
@@ -292,6 +294,7 @@ int gps_l1_ca_telemetry_decoder_cc::general_work(int noutput_items __attribute__
                             DLOG(INFO) << "Lost of frame sync SAT " << this->d_satellite << " preamble_diff= " << preamble_diff_ms;
                             d_stat = 0;  //lost of frame sync
                             d_flag_frame_sync = false;
+			    demod_state = false;
                             flag_TOW_set = false;
                             d_make_correlation = true;
                             d_symbol_counter_corr = 0;
