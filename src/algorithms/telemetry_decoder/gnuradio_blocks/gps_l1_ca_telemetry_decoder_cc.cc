@@ -65,7 +65,7 @@ pmt::pmt_t gps_l1_ca_telemetry_decoder_cc :: get_subframe (char * subframe,doubl
 	      if (byte & 0x80)
 		pmt::vector_set(subframe3,cnt,pmt::from_double(sign));
 	      else
-	        pmt::vector_set(subframe3,cnt,pmt::from_double(sign));
+	        pmt::vector_set(subframe3,cnt,pmt::from_double(-sign));
 	      cnt++;
 	    }
 	  byte <<=1;
