@@ -62,6 +62,7 @@
 
 using google::LogMessage;
 extern int demod_symbols;
+extern bool demod_state; 
 
 gps_l1_ca_dll_pll_tracking_cc_pr_sptr
 gps_l1_ca_dll_pll_make_tracking_cc_pr(
@@ -338,7 +339,7 @@ int Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::general_work (int noutput_items __attribut
 
             int symb_id = (nitems_written(0) - demod_symbols) %  (GPS_CA_TELEMETRY_RATE_SYMBOLS_SECOND*GPS_L1_CA_FRAME_TIME_SECOND);
 
-            rec_kernel.gen(
+            if(rec_kernel.gen(
                             d_rem_carr_phase_rad,
                             d_carrier_phase_step_rad,
 			    d_current_prn_length_samples,
@@ -346,9 +347,7 @@ int Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::general_work (int noutput_items __attribut
 			    multicorrelator_cpu.get_ref(),
                             (gr_complex *)output_items[1],
                             symb_id
-                          );
-
-            if (symb_id >= 28000)
+			      ) and demod_state )
              {
                 add_item_tag(
 			 1,
