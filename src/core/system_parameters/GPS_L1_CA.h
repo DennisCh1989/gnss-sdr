@@ -92,6 +92,7 @@ const int GPS_SUBFRAME_SECONDS = 6;                                             
 const int GPS_SUBFRAME_MS = 6000;                                                                                       //!< Subframe duration [seconds]
 const int GPS_WORD_BITS = 30;                                                                                           //!< Number of bits per word in the NAV message [bits]
 const int GPS_L1_CA_FRAME_TIME_SECOND = 30;
+const int GPS_SUBFRAME_NUM = 5;
 
 // GPS NAVIGATION MESSAGE STRUCTURE
 // NAVIGATION MESSAGE FIELDS POSITIONS (from IS-GPS-200E Appendix II)
