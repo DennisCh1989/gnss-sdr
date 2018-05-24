@@ -41,6 +41,7 @@ set(TRACKING_LIB_SOURCES
      tracking_discriminators.cc
      tracking_FLL_PLL_filter.cc
      tracking_loop_filter.cc
+     recovery_kernel.cc
 )
 
 include_directories(
