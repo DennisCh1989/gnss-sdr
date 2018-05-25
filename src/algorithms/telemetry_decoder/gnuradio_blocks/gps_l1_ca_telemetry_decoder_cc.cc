@@ -230,7 +230,6 @@ int gps_l1_ca_telemetry_decoder_cc::general_work (int noutput_items __attribute_
                             d_stat = 0; //lost of frame sync
                             d_flag_frame_sync = false;
                             flag_TOW_set = false;
-                            this->message_port_pub(pmt::mp("events"), pmt::from_long(-1));
                         }
                 }
         }
@@ -279,6 +278,7 @@ int gps_l1_ca_telemetry_decoder_cc::general_work (int noutput_items __attribute_
                              memcpy(&d_GPS_FSM.d_GPS_frame_4bytes, &d_GPS_frame_4bytes, sizeof(char)*4);
                              d_GPS_FSM.d_preamble_time_ms = d_preamble_time_seconds * 1000.0;
                              d_GPS_FSM.Event_gps_word_valid();
+                             this->message_port_pub(pmt::mp("events"), pmt::from_long(nitems_read(0)));
                              // send TLM data to PVT using asynchronous message queues
                              if (d_GPS_FSM.d_flag_new_subframe == true)
                                  {
@@ -290,10 +290,6 @@ int gps_l1_ca_telemetry_decoder_cc::general_work (int noutput_items __attribute_
                                                  // get ephemeris object for this SV (mandatory)
                                                  std::shared_ptr<Gps_Ephemeris> tmp_obj = std::make_shared<Gps_Ephemeris>(d_GPS_FSM.d_nav.get_ephemeris());
                                                  this->message_port_pub(pmt::mp("telemetry"), pmt::make_any(tmp_obj));
-                                                 if(nitems_read(0)>100)
-                                                  {
-                                                     this->message_port_pub(pmt::mp("events"), pmt::from_long(nitems_read(0)));
-                                                  }
                                              }
                                          break;
                                      case 4: // Possible IONOSPHERE and UTC model update (page 18)
@@ -301,19 +297,11 @@ int gps_l1_ca_telemetry_decoder_cc::general_work (int noutput_items __attribute_
                                              {
                                                  std::shared_ptr<Gps_Iono> tmp_obj = std::make_shared<Gps_Iono>( d_GPS_FSM.d_nav.get_iono());
                                                  this->message_port_pub(pmt::mp("telemetry"), pmt::make_any(tmp_obj));
-                                                 if(nitems_read(0)>100)
-                                                  {
-                                                     this->message_port_pub(pmt::mp("events"), pmt::from_long(nitems_read(0)));
-                                                  }
                                              }
                                          if (d_GPS_FSM.d_nav.flag_utc_model_valid == true)
                                              {
                                                  std::shared_ptr<Gps_Utc_Model> tmp_obj = std::make_shared<Gps_Utc_Model>(d_GPS_FSM.d_nav.get_utc_model());
                                                  this->message_port_pub(pmt::mp("telemetry"), pmt::make_any(tmp_obj));
-                                                 if(nitems_read(0)>100)
-                                                  {
-                                                     this->message_port_pub(pmt::mp("events"), pmt::from_long(nitems_read(0)));
-                                                  }
                                              }
                                          break;
                                      case 5:
