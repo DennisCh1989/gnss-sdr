@@ -81,6 +81,7 @@ public:
             gr_vector_const_void_star &input_items, gr_vector_void_star &output_items);
 
     void forecast (int noutput_items, gr_vector_int &ninput_items_required);
+    void set_demod_phase(uint64_t demod_phase) {d_demod_phase = demod_phase;}
 
 private:
     friend gps_l1_ca_dll_pll_tracking_cc_pr_sptr
@@ -133,7 +134,7 @@ private:
     gr_complex* d_correlator_outs;
     cpu_multicorrelator multicorrelator_cpu;
     recovery_kernel rec_kernel;
-    int64_t d_demod_phase;
+    uint64_t d_demod_phase;
 
     // tracking vars
     double d_code_freq_chips;

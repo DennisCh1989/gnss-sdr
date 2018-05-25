@@ -323,6 +323,7 @@ int Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::general_work (int noutput_items __attribut
                     consume_each(samples_offset); // shift input to perform alignment with local replica
 		    produce (0,1);
                     produce (1,samples_offset);
+                    d_demod_phase = 0;
                     return WORK_CALLED_PRODUCE; // output tracking result ALWAYS even in the case of d_enable_tracking==false
                 }
 
@@ -438,6 +439,7 @@ int Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::general_work (int noutput_items __attribut
                             this->message_port_pub(pmt::mp("events"), pmt::from_long(3)); // 3 -> loss of lock
                             d_carrier_lock_fail_counter = 0;
                             d_enable_tracking = false; // TODO: check if disabling tracking is consistent with the channel state machine
+                            d_demod_phase =0;
 			    unsigned int remand_samples_in_ker =  rec_kernel.clear_rec_ker( (gr_complex *)output_items[1], nitems_written(0)-d_demod_phase);
 			    produce(1, remand_samples_in_ker);
 			    d_sample_counter +=remand_samples_in_ker;
