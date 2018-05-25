@@ -73,6 +73,7 @@ public:
     void Event_failed_acquisition_no_repeat();
     //void Event_gps_failed_tracking_reacq();
     void Event_failed_tracking_standby();
+    void Event_set_reckernel_start(int message);
 
 private:
     std::shared_ptr<AcquisitionInterface> acq_;

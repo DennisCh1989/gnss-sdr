@@ -54,6 +54,13 @@ struct Ev_channel_failed_acquisition_no_repeat: sc::event<Ev_channel_failed_acqu
 struct Ev_channel_failed_tracking_standby: sc::event<Ev_channel_failed_tracking_standby>
 {};
 
+struct Ev_channel_set_reckernel_start: sc::event<Ev_channel_set_reckernel_start>
+{
+   Ev_channel_set_reckernel_start(int demod_phase) : _demod_phase(demod_phase)  { } 
+   int get_demod_phase() const {return _demod_phase;}
+   int _demod_phase;
+};
+
 //struct Ev_channel_failed_tracking_reacq: sc::event<Ev_channel_failed_tracking_reacq>
 //{};
 
@@ -92,19 +99,34 @@ struct channel_tracking_fsm_S2: public sc::state<channel_tracking_fsm_S2, Channe
 {
 public:
     typedef mpl::list<sc::transition<Ev_channel_failed_tracking_standby, channel_idle_fsm_S0>,
-                      sc::transition<Ev_channel_start_acquisition, channel_acquiring_fsm_S1>> reactions;
+                      sc::transition<Ev_channel_start_acquisition, channel_acquiring_fsm_S1>,
+                      sc::transition<Ev_channel_set_reckernel_start,channel_tracking_fsm_S2>> reactions;
 
-    channel_tracking_fsm_S2(my_context ctx) : my_base(ctx)
+    channel_tracking_fsm_S2(my_context ctx) : _demod_phase(0),my_base(ctx)
     {
-       //std::cout << "Enter Channel_tracking_S2 " << std::endl;
-        context<ChannelFsm> ().start_tracking();
+       auto trigEvt = dynamic_cast<const Ev_channel_set_reckernel_start*> (triggering_event());
+       if(trigEvt)
+        {
+           _demod_phase = trigEvt -> get_demod_phase();
+           context<ChannelFsm> ().set_reckernel_start(_demod_phase);
+           post_event(*trigEvt);
+        } 
+        else
+        {
+          //std::cout << "Enter Channel_tracking_S2 " << std::endl;
+          context<ChannelFsm> ().start_tracking();  
+        }
     }
 
     ~channel_tracking_fsm_S2()
     {
         //std::cout << "Exit Channel_tracking_S2 " << std::endl;
-        context<ChannelFsm> ().notify_stop_tracking();
+        auto trigEvt = dynamic_cast<const Ev_channel_set_reckernel_start*> (triggering_event());
+        if (!trigEvt)
+           context<ChannelFsm> ().notify_stop_tracking();
     }
+
+   int _demod_phase;
 
 };
 
@@ -176,6 +198,11 @@ void ChannelFsm::Event_failed_tracking_standby()
     this->process_event(Ev_channel_failed_tracking_standby());
 }
 
+void ChannelFsm::Event_set_reckernel_start(int message)
+{
+    this->process_event(Ev_channel_set_reckernel_start(message)); 
+}
+
 //void ChannelFsm::Event_failed_tracking_reacq() {
 //    this->process_event(Ev_channel_failed_tracking_reacq());
 //}
@@ -231,4 +258,9 @@ void ChannelFsm::notify_stop_tracking()
         {
             queue_->handle(cmf->GetQueueMessage(channel_, 2));
         }
+}
+
+void ChannelFsm::set_reckernel_start(int message);
+{
+   trk_ ->set_demod_phase(message);
 }
