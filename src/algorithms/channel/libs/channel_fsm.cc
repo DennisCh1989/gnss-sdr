@@ -122,7 +122,7 @@ public:
     {
         //std::cout << "Exit Channel_tracking_S2 " << std::endl;
         auto trigEvt = dynamic_cast<const Ev_channel_set_reckernel_start*> (triggering_event());
-        if (!trigEvt)
+        if (trigEvt == 0)
            context<ChannelFsm> ().notify_stop_tracking();
     }
 
@@ -198,7 +198,7 @@ void ChannelFsm::Event_failed_tracking_standby()
     this->process_event(Ev_channel_failed_tracking_standby());
 }
 
-void ChannelFsm::Event_set_reckernel_start(int message)
+void ChannelFsm::Event_set_reckernel_start(uint64_t message)
 {
     this->process_event(Ev_channel_set_reckernel_start(message)); 
 }
@@ -260,7 +260,7 @@ void ChannelFsm::notify_stop_tracking()
         }
 }
 
-void ChannelFsm::set_reckernel_start(int message);
+void ChannelFsm::set_reckernel_start(uint64_t message);
 {
    trk_ ->set_demod_phase(message);
 }

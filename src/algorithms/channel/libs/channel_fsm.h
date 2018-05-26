@@ -34,6 +34,7 @@
 
 
 #include <boost/statechart/state_machine.hpp>
+#include <cinttypes>
 #include <gnuradio/msg_queue.h>
 #include "acquisition_interface.h"
 #include "tracking_interface.h"
@@ -65,6 +66,7 @@ public:
     void start_tracking();
     void request_satellite();
     void notify_stop_tracking();
+    void set_reckernel_start(uint64_t message);
 
     //FSM EVENTS
     void Event_start_acquisition();
@@ -73,7 +75,7 @@ public:
     void Event_failed_acquisition_no_repeat();
     //void Event_gps_failed_tracking_reacq();
     void Event_failed_tracking_standby();
-    void Event_set_reckernel_start(int message);
+    void Event_set_reckernel_start(uint64_t message);
 
 private:
     std::shared_ptr<AcquisitionInterface> acq_;
