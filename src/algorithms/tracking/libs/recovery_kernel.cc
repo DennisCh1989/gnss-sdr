@@ -43,10 +43,10 @@ unsigned int    recovery_kernel::gen(  float init_phase, float incm_phase,
 	return ans;
      }
 
-   return -1;
+   return 0;
 }
 
-unsigned int  recovery_kernel::clear_rec_ker( lv_32fc_t* out, uint64_t demod_phase)
+unsigned int  recovery_kernel::clear_rec_ker( lv_32fc_t* out)
 {
    if (d_symb_length != 0)
      {

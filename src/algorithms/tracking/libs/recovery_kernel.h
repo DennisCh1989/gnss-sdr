@@ -16,7 +16,7 @@ class recovery_kernel
 	               lv_32fc_t* out,
                        int symb_id);
      void put0s(lv_32fc_t* out,int length) {memset(out,0,sizeof(lv_32fc_t) * length);}
-     unsigned int clear_rec_ker(lv_32fc_t* out,uint64_t demod_phase);
+     unsigned int clear_rec_ker(lv_32fc_t* out);
      recovery_kernel(int vector_length) {d_in = new lv_32fc_t[vector_length*40];}
      ~recovery_kernel() {delete [] d_in;} 
    private:

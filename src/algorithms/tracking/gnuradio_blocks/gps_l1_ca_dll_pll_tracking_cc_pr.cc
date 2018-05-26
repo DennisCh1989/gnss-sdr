@@ -440,7 +440,7 @@ int Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::general_work (int noutput_items __attribut
                             d_carrier_lock_fail_counter = 0;
                             d_enable_tracking = false; // TODO: check if disabling tracking is consistent with the channel state machine
                             d_demod_phase =0;
-			    unsigned int remand_samples_in_ker =  rec_kernel.clear_rec_ker( (gr_complex *)output_items[1], nitems_written(0)-d_demod_phase);
+			    unsigned int remand_samples_in_ker =  rec_kernel.clear_rec_ker( (gr_complex *)output_items[1]);
 			    produce(1, remand_samples_in_ker);
 			    d_sample_counter +=remand_samples_in_ker;
                         }
