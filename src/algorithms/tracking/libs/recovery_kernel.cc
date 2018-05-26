@@ -48,7 +48,7 @@ unsigned int    recovery_kernel::gen(  float init_phase, float incm_phase,
 
 unsigned int  recovery_kernel::clear_rec_ker( lv_32fc_t* out, uint64_t demod_phase)
 {
-   if (demod_phase % GPS_CA_TELEMETRY_SYMBOLS_PER_BIT !=  GPS_CA_TELEMETRY_SYMBOLS_PER_BIT-1)
+   if (d_symb_length != 0)
      {
         memcpy(out,d_in,sizeof(lv_32fc_t)*d_symb_length);
      }
