@@ -305,6 +305,19 @@ void GNSSFlowgraph::connect()
                     return;
             }
 
+            try
+            {
+                    top_block_->connect(channels_.at(i)->get_tracking_block(), 1,
+                            passive_radar_->get_left_block(), i);
+            }
+            catch (std::exception& e)
+            {
+                    LOG(WARNING) << "Can't connect channel " << i << " to passive radar";
+                    LOG(ERROR) << e.what();
+                    top_block_->disconnect_all();
+                    return;
+            }
+
             std::string gnss_signal = channels_.at(i)->get_signal().get_signal_str(); // use channel's implicit signal!
             while (gnss_signal.compare(available_GNSS_signals_.front().get_signal_str()) != 0 )
                 {
