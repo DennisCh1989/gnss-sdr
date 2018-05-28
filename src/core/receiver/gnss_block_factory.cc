@@ -97,6 +97,7 @@
 #include "gps_l1_ca_pvt.h"
 #include "galileo_e1_pvt.h"
 #include "hybrid_pvt.h"
+#include "passive_radar.h"
 
 #if OPENCL_BLOCKS
 #include "gps_l1_ca_pcps_opencl_acquisition.h"
@@ -676,8 +677,14 @@ std::unique_ptr<GNSSBlockInterface> GNSSBlockFactory::GetBlock(
 {
     std::unique_ptr<GNSSBlockInterface> block;
 
+    //PASSIVE RADAR ----------------------------------------------------------------
+    if (implementation.compare("PassiveRadar") == 0)
+        {
+           std::unique_ptr<GNSSBlockInterface> block_(new Passive_Radar(configuration.get(), role, in_streams, out_streams));
+           block = std::move(block_);
+        }
     //PASS THROUGH ----------------------------------------------------------------
-    if (implementation.compare("Pass_Through") == 0)
+    else if (implementation.compare("Pass_Through") == 0)
         {
             std::unique_ptr<GNSSBlockInterface> block_(new Pass_Through(configuration.get(), role, in_streams, out_streams));
             block = std::move(block_);
@@ -688,6 +695,7 @@ std::unique_ptr<GNSSBlockInterface> GNSSBlockFactory::GetBlock(
         {
             try
             {
+
                     std::unique_ptr<GNSSBlockInterface> block_(new FileSignalSource(configuration.get(), role, in_streams,
                             out_streams, queue));
                     block = std::move(block_);

@@ -47,6 +47,7 @@ class GNSSBlockInterface;
 class AcquisitionInterface;
 class TrackingInterface;
 class TelemetryDecoderInterface;
+class PassiveRadarInterface;
 
 /*!
  * \brief Class that produces all kinds of GNSS blocks
