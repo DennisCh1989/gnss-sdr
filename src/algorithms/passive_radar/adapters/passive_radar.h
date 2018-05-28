@@ -35,38 +35,35 @@
  * -------------------------------------------------------------------------
  */
 
-#ifndef GNSS_SDR_GPS_L1_CA_DLL_PLL_TRACKING_H_
-#define GNSS_SDR_GPS_L1_CA_DLL_PLL_TRACKING_H_
+#ifndef PASSIVE_RADAR_H_
+#define PASSIVE_RADAR_H_
 
 #include <string>
-#include "tracking_interface.h"
-#include "gps_l1_ca_dll_pll_tracking_cc.h"
+#include "passive_radar_interface.h"
+#include "passive_radar_cc.h"
 
 
 class ConfigurationInterface;
 
-/*!
- * \brief This class implements a code DLL + carrier PLL tracking loop
- */
-class GpsL1CaDllPllTracking : public TrackingInterface
+class PassiveRadar : public PassiveRadarInterface
 {
 public:
-    GpsL1CaDllPllTracking(ConfigurationInterface* configuration,
+    PassiveRadar(ConfigurationInterface* configuration,
             std::string role,
             unsigned int in_streams,
             unsigned int out_streams);
 
-    virtual ~GpsL1CaDllPllTracking();
+    virtual ~PassiveRadar();
 
     std::string role()
     {
         return role_;
     }
 
-    //! Returns "GPS_L1_CA_DLL_PLL_Tracking"
+    //! Returns "PassiveRadar"
     std::string implementation()
     {
-        return "GPS_L1_CA_DLL_PLL_Tracking";
+        return "PassiveRadar";
     }
 
     size_t item_size()
@@ -79,26 +76,12 @@ public:
     gr::basic_block_sptr get_left_block();
     gr::basic_block_sptr get_right_block();
 
-    /*!
-     * \brief Set tracking channel unique ID
-     */
-    void set_channel(unsigned int channel);
-
-    /*!
-     * \brief Set acquisition/tracking common Gnss_Synchro object pointer
-     * to efficiently exchange synchronization data between acquisition and tracking blocks
-     */
-    void set_gnss_synchro(Gnss_Synchro* p_gnss_synchro);
-
-    void start_tracking();
-
 private:
-    gps_l1_ca_dll_pll_tracking_cc_sptr tracking_;
+    passive_radar_cc_sptr passive_radar_;
     size_t item_size_;
-    unsigned int channel_;
     std::string role_;
     unsigned int in_streams_;
     unsigned int out_streams_;
 };
 
-#endif // GNSS_SDR_GPS_L1_CA_DLL_PLL_TRACKING_H_
+#endif // PASSIVE_RADAR_H_
