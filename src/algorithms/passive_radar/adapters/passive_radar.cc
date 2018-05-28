@@ -68,15 +68,11 @@ PassiveRadar::PassiveRadar(
     if (item_type.compare("gr_complex") == 0)
         {
             item_size_ = sizeof(gr_complex);
-            tracking_ = gps_l1_ca_dll_pll_make_tracking_cc(
-                    f_if,
+            passive_radar_ = make_passive_radar_cc(
                     fs_in,
                     vector_length,
                     dump,
-                    dump_filename,
-                    pll_bw_hz,
-                    dll_bw_hz,
-                    early_late_space_chips);
+                    dump_filename)
         }
     else
         {
@@ -107,12 +103,12 @@ void PassiveRadar::disconnect(gr::top_block_sptr top_block)
 
 gr::basic_block_sptr PassiveRadar::get_left_block()
 {
-    return tracking_;
+    return passive_radar_;
 }
 
 
 gr::basic_block_sptr PassiveRadar::get_right_block()
 {
-    return tracking_;
+    return passive_radar_;
 }
 
