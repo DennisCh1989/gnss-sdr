@@ -70,6 +70,8 @@ include_directories(
      ${CMAKE_SOURCE_DIR}/src/algorithms/PVT/adapters
      ${CMAKE_SOURCE_DIR}/src/algorithms/PVT/gnuradio_blocks
      ${CMAKE_SOURCE_DIR}/src/algorithms/PVT/libs
+     ${CMAKE_SOURCE_DIR}/src/algorithms/passive_radar/adapters
+     ${CMAKE_SOURCE_DIR}/src/algorithms/passive_radar/gnuradio_blocks
      ${ARMADILLO_INCLUDE_DIRS}
      ${GLOG_INCLUDE_DIRS}
      ${GFlags_INCLUDE_DIRS}
