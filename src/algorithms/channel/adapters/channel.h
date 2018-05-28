@@ -71,6 +71,7 @@ public:
     void disconnect(gr::top_block_sptr top_block);
     gr::basic_block_sptr get_left_block();
     gr::basic_block_sptr get_right_block();
+    gr::basic_block_sptr get_tracking_block();
     std::string role(){ return role_; }
 
     //! Returns "Channel"

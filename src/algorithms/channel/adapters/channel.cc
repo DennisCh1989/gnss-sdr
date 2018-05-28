@@ -163,6 +163,10 @@ gr::basic_block_sptr Channel::get_right_block()
     return nav_->get_right_block();
 }
 
+gr::basic_block_sptr Channel::get_tracking_block()
+{
+    return trk_->get_right_block();
+}
 
 void Channel::set_signal(const Gnss_Signal& gnss_signal)
 {
