@@ -687,7 +687,7 @@ std::unique_ptr<GNSSBlockInterface> GNSSBlockFactory::GetBlock(
 {
     std::unique_ptr<GNSSBlockInterface> block;
 
-    //PASSIVE RADAR -----------g-----------------------------------------------------
+    //PASSIVE RADAR ----------------------------------------------------------------
     if (implementation.compare("PassiveRadar") == 0)
         {
            std::unique_ptr<GNSSBlockInterface> block_(new PassiveRadar(configuration.get(), role, in_streams, out_streams));
