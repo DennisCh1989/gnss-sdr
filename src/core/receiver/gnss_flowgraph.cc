@@ -187,6 +187,18 @@ void GNSSFlowgraph::connect()
             return;
     }
 
+    try
+    {
+            passive_radar_->connect(top_block_);
+    }
+    catch (std::exception& e)
+    {
+            LOG(WARNING) << "Can't connect PVT block internally";
+            LOG(ERROR) << e.what();
+            top_block_->disconnect_all();
+            return;
+    }
+
     DLOG(INFO) << "blocks connected internally";
     // Signal Source (i) >  Signal conditioner (i) >
     int RF_Channels = 0;
@@ -515,6 +527,7 @@ void GNSSFlowgraph::init()
 
     observables_ = block_factory_->GetObservables(configuration_);
     pvt_ = block_factory_->GetPVT(configuration_);
+    passive_radar_  = block_factory -> GetPassiveRadar(configuration_);
 
     std::shared_ptr<std::vector<std::unique_ptr<GNSSBlockInterface>>> channels = block_factory_->GetChannels(configuration_, queue_);
 

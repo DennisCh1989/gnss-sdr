@@ -232,6 +232,14 @@ std::unique_ptr<GNSSBlockInterface> GNSSBlockFactory::GetObservables(std::shared
     return GetBlock(configuration, "Observables", implementation, Galileo_channels + GPS_channels, Galileo_channels + GPS_channels);
 }
 
+std::unique_ptr<GNSSBlockInterface> GNSSBlockFactory::GetPassiveRadar(std::shared_ptr<ConfigurationInterface> configuration)
+{
+    std::string default_implementation = "PassiveRadar";
+    std::string implementation = configuration->property("PassiveRadar.implementation", default_implementation);
+    LOG(INFO) << "Getting PassiveRadar with implementation " << implementation;
+    return GetBlock(configuration, "PassiveRadar", implementation, 0,0);
+}
+
 
 
 std::unique_ptr<GNSSBlockInterface> GNSSBlockFactory::GetPVT(std::shared_ptr<ConfigurationInterface> configuration)
@@ -680,7 +688,7 @@ std::unique_ptr<GNSSBlockInterface> GNSSBlockFactory::GetBlock(
     //PASSIVE RADAR ----------------------------------------------------------------
     if (implementation.compare("PassiveRadar") == 0)
         {
-           std::unique_ptr<GNSSBlockInterface> block_(new Passive_Radar(configuration.get(), role, in_streams, out_streams));
+           std::unique_ptr<GNSSBlockInterface> block_(new PassiveRadar(configuration.get(), role, in_streams, out_streams));
            block = std::move(block_);
         }
     //PASS THROUGH ----------------------------------------------------------------
