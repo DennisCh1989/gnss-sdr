@@ -53,21 +53,13 @@ PassiveRadar::PassiveRadar(
     //################# CONFIGURATION PARAMETERS ########################
     int fs_in;
     int vector_length;
-    int f_if;
     bool dump;
     std::string dump_filename;
     std::string item_type;
-    std::string default_item_type = "gr_complex";
-    float pll_bw_hz;
-    float dll_bw_hz;
-    float early_late_space_chips;
+    std::string default_item_type = "gr_complex"
     item_type = configuration->property(role + ".item_type", default_item_type);
     fs_in = configuration->property("GNSS-SDR.internal_fs_hz", 2048000);
-    f_if = configuration->property(role + ".if", 0);
     dump = configuration->property(role + ".dump", false);
-    pll_bw_hz = configuration->property(role + ".pll_bw_hz", 50.0);
-    dll_bw_hz = configuration->property(role + ".dll_bw_hz", 2.0);
-    early_late_space_chips = configuration->property(role + ".early_late_space_chips", 0.5);
     std::string default_dump_filename = "./track_ch";
     dump_filename = configuration->property(role + ".dump_filename", default_dump_filename); //unused!
     vector_length = std::round(fs_in / (GPS_L1_CA_CODE_RATE_HZ / GPS_L1_CA_CODE_LENGTH_CHIPS));
