@@ -238,7 +238,7 @@ void GNSSFlowgraph::connect()
                                         {
 
                                             LOG(INFO) << "connecting sig_source_ " << i << " stream " << j << " to conditioner " << j;
-                                            top_block_->connect(sig_source_.at(i)->get_right_block(), j, sig_conditioner_.at(signal_conditioner_ID)->get_left_block(), 0);
+                                            top_block_->connect(sig_source_.at(i)->get_right_block(), j, sig_conditioner_.at(signal_conditioner_ID)->get_left_block(), 0); 
 
                                         }
                                     else
@@ -280,6 +280,8 @@ void GNSSFlowgraph::connect()
             {
                     top_block_->connect(sig_conditioner_.at(selected_signal_conditioner_ID)->get_right_block(), 0,
                             channels_.at(i)->get_left_block(), 0);
+                    top_block_->connect(sig_conditioner_.at(selected_signal_conditioner_ID)->get_right_block(), 0,
+                            passive_radar_->get_left_block(), selected_signal_conditioner_ID);
             }
             catch (std::exception& e)
             {
@@ -308,7 +310,7 @@ void GNSSFlowgraph::connect()
             try
             {
                     top_block_->connect(channels_.at(i)->get_tracking_block(), 1,
-                            passive_radar_->get_left_block(), i);
+                            passive_radar_->get_left_block(), i + sources_count_);
             }
             catch (std::exception& e)
             {
