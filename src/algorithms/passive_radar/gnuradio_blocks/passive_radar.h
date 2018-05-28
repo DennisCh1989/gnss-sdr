@@ -48,7 +48,7 @@ class ConfigurationInterface;
 class PassiveRadar : public PassiveRadarInterface
 {
 public:
-    PassiveRadar(ConfigurationInterface* configuration,
+    Passive_Radar(ConfigurationInterface* configuration,
             std::string role,
             unsigned int in_streams,
             unsigned int out_streams);

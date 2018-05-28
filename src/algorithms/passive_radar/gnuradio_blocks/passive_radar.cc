@@ -53,20 +53,14 @@ PassiveRadar::PassiveRadar(
     //################# CONFIGURATION PARAMETERS ########################
     int fs_in;
     int vector_length;
-    int f_if;
     bool dump;
     std::string dump_filename;
     std::string item_type;
     std::string default_item_type = "gr_complex";
-    float pll_bw_hz;
-    float dll_bw_hz;
-    float early_late_space_chips;
     item_type = configuration->property(role + ".item_type", default_item_type);
     fs_in = configuration->property("GNSS-SDR.internal_fs_hz", 2048000);
     f_if = configuration->property(role + ".if", 0);
     dump = configuration->property(role + ".dump", false);
-    pll_bw_hz = configuration->property(role + ".pll_bw_hz", 50.0);
-    dll_bw_hz = configuration->property(role + ".dll_bw_hz", 2.0);
     early_late_space_chips = configuration->property(role + ".early_late_space_chips", 0.5);
     std::string default_dump_filename = "./track_ch";
     dump_filename = configuration->property(role + ".dump_filename", default_dump_filename); //unused!
@@ -76,15 +70,11 @@ PassiveRadar::PassiveRadar(
     if (item_type.compare("gr_complex") == 0)
         {
             item_size_ = sizeof(gr_complex);
-            tracking_ = gps_l1_ca_dll_pll_make_tracking_cc(
-                    f_if,
+            tracking_ = passive_radar_cc(
                     fs_in,
                     vector_length,
                     dump,
-                    dump_filename,
-                    pll_bw_hz,
-                    dll_bw_hz,
-                    early_late_space_chips);
+                    dump_filename);
         }
     else
         {
@@ -115,12 +105,12 @@ void PassiveRadar::disconnect(gr::top_block_sptr top_block)
 
 gr::basic_block_sptr PassiveRadar::get_left_block()
 {
-    return tracking_;
+    return passive_radar_;
 }
 
 
 gr::basic_block_sptr PassiveRadar::get_right_block()
 {
-    return tracking_;
+    return passive_radar_;
 }
 
