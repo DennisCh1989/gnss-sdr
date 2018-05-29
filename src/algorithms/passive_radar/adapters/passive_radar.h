@@ -50,8 +50,8 @@ class PassiveRadar : public PassiveRadarInterface
 public:
     PassiveRadar(ConfigurationInterface* configuration,
             std::string role,
-            unsigned int in_streams,
-            unsigned int out_streams);
+            unsigned int sources_count,
+            unsigned int channels_count);
 
     virtual ~PassiveRadar();
 

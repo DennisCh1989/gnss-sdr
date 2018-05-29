@@ -46,41 +46,22 @@ using google::LogMessage;
 
 PassiveRadar::PassiveRadar(
         ConfigurationInterface* configuration, std::string role,
-        unsigned int in_streams, unsigned int out_streams) :
-                role_(role), in_streams_(in_streams), out_streams_(out_streams)
+        unsigned int source_count, unsigned int channels_count) : role_(role)
 {
     DLOG(INFO) << "role " << role;
     //################# CONFIGURATION PARAMETERS ########################
-    int fs_in;
-    int vector_length;
-    bool dump;
-    std::string dump_filename;
-    std::string item_type;
-    std::string default_item_type = "gr_complex"
-    item_type = configuration->property(role + ".item_type", default_item_type);
-    fs_in = configuration->property("GNSS-SDR.internal_fs_hz", 2048000);
-    dump = configuration->property(role + ".dump", false);
-    std::string default_dump_filename = "./track_ch";
-    dump_filename = configuration->property(role + ".dump_filename", default_dump_filename); //unused!
-    vector_length = std::round(fs_in / (GPS_L1_CA_CODE_RATE_HZ / GPS_L1_CA_CODE_LENGTH_CHIPS));
+    float fs_in = configuration->property("GNSS-SDR.internal_fs_hz", 2048000);
+    float duration  = configuration->property("PASSIVE_RADAR.internal_fs_hz", 1);
+    unsigned int vector_length = std::round(fs_in / (GPS_L1_CA_CODE_RATE_HZ / GPS_L1_CA_CODE_LENGTH_CHIPS));
 
-    //################# MAKE TRACKING GNURadio object ###################
-    if (item_type.compare("gr_complex") == 0)
-        {
-            item_size_ = sizeof(gr_complex);
-            passive_radar_ = make_passive_radar_cc(
-                    fs_in,
-                    vector_length,
-                    dump,
-                    dump_filename)
-        }
-    else
-        {
-            item_size_ = sizeof(gr_complex);
-            LOG(WARNING) << item_type << " unknown tracking item type.";
-        }
-    channel_ = 0;
-    DLOG(INFO) << "tracking(" << tracking_->unique_id() << ")";
+    //################# MAKE PASSIVE RADAR GNURadio object ###################
+    passive_radar_ = make_passive_radar_cc(
+                                             fs_in,
+                                             duration,
+                                             sources_count,
+                                             channels_count,
+                                             vector_length
+                                                     );
 }
 
 
