@@ -50,7 +50,7 @@ list(SORT PASSIVE_RADAR_GR_BLOCKS_HEADERS)
 add_library(passive_radar_gr_blocks ${PASSIVE_RADAR_GR_BLOCKS_SOURCES} ${PASSIVE_RADAR_GR_BLOCKS_HEADERS})
 source_group(Headers FILES ${PASSIVE_RADAR_GR_BLOCKS_HEADERS})
 
-target_link_libraries(tracking_gr_blocks tracking_lib ${GNURADIO_RUNTIME_LIBRARIES} gnss_sp_libs ${Boost_LIBRARIES} ${VOLK_GNSSSDR_LIBRARIES} ${OPT_PASSIVE_RADAR_LIBRARIES})
+target_link_libraries(passive_radar_gr_blocks passive_radar_lib ${GNURADIO_RUNTIME_LIBRARIES} gnss_sp_libs ${Boost_LIBRARIES} ${VOLK_GNSSSDR_LIBRARIES} ${OPT_PASSIVE_RADAR_LIBRARIES})
 
 if(NOT VOLK_GNSSSDR_FOUND)
     add_dependencies(passive_radar_gr_blocks volk_gnsssdr_module)
