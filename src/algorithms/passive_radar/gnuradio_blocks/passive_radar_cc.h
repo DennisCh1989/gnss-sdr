@@ -31,7 +31,7 @@ make_passive_radar_cc(
                         float fs_in,
                         float duration,
                         unsigned int sources_count,
-                        unsigned int channles_count,
+                        unsigned int channels_count,
                         unsigned int vector_length
                        );
 
@@ -42,7 +42,7 @@ make_passive_radar_cc(
                                                           float fs_in,
                                                           float duration,
                                                           unsigned int sources_count,
-                                                          unsigned int channles_count,
+                                                          unsigned int channels_count,
                                                           unsigned int vector_length
                                                            );
 

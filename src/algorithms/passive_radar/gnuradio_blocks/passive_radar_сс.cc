@@ -30,7 +30,7 @@
                                                   float fs_in,
                                                   float duration,
                                                   unsigned int sources_count,
-                                                  unsigned int channles_count,
+                                                  unsigned int channels_count,
                                                   unsigned int vector_length
                                                     )
     {
@@ -38,7 +38,7 @@
                                                          float fs_in,
                                                          float duration,
                                                          unsigned int sources_count,
-                                                         unsigned int channles_count,
+                                                         unsigned int channels_count,
                                                          unsigned int vector_length
                                                            ));
     }
@@ -50,7 +50,7 @@
                                        float fs_in,
                                        float duration,
                                        unsigned int sources_count,
-                                       unsigned int channles_count ,
+                                       unsigned int channels_count ,
                                        unsigned int vector_length
                                         )
       : gr::sync_block("passive_radar",
