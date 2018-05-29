@@ -237,9 +237,9 @@ std::unique_ptr<GNSSBlockInterface> GNSSBlockFactory::GetPassiveRadar(std::share
     std::string default_implementation = "PassiveRadar";
     std::string implementation = configuration->property("PassiveRadar.implementation", default_implementation);
     unsigned int GPS_channels =configuration->property("Channels_1C.count", 0);
-    unsigned int sources_count_ = configuration_->property("Receiver.sources_count", 1);
+    unsigned int sources_count = configuration_->property("Receiver.sources_count", 1);
     LOG(INFO) << "Getting PassiveRadar with implementation " << implementation;
-    return GetBlock(configuration, "PassiveRadar", implementation, GPS_channels + sources_count_,0);
+    return GetBlock(configuration, "PassiveRadar", implementation,sources_count, GPS_channels );
 }
 
 
