@@ -273,6 +273,7 @@ void GNSSFlowgraph::connect()
 
     // Signal conditioner (selected_signal_source) >> channels (i) (dependent of their associated SignalSource_ID)
     int selected_signal_conditioner_ID;
+    std::set<int> ports = {};
     for (unsigned int i = 0; i < channels_count_; i++)
         {
             selected_signal_conditioner_ID = configuration_->property("Channel" + boost::lexical_cast<std::string>(i) + ".RF_channel_ID", 0);
@@ -280,8 +281,12 @@ void GNSSFlowgraph::connect()
             {
                     top_block_->connect(sig_conditioner_.at(selected_signal_conditioner_ID)->get_right_block(), 0,
                             channels_.at(i)->get_left_block(), 0);
-                    top_block_->connect(sig_conditioner_.at(selected_signal_conditioner_ID)->get_right_block(), 0,
-                            passive_radar_->get_left_block(), selected_signal_conditioner_ID);
+                    if (ports.find(selected_signal_conditioner_ID) == ports.end()) 
+                     {
+                       top_block_->connect(sig_conditioner_.at(selected_signal_conditioner_ID)->get_right_block(), 0,
+                            passive_radar_->get_left_block(),selected_signal_conditioner_ID);
+                       ports.insert(selected_signal_conditioner_ID);
+                     }     
             }
             catch (std::exception& e)
             {
@@ -309,8 +314,8 @@ void GNSSFlowgraph::connect()
 
             try
             {
-                    top_block_->connect(channels_.at(i)->get_tracking_block(), 1,
-                            passive_radar_->get_left_block(), i + sources_count_);
+                top_block_->connect(channels_.at(i)->get_tracking_block(), 1,
+                            passive_radar_->get_left_block(), i + sig_conditioner_.size());
             }
             catch (std::exception& e)
             {
@@ -542,7 +547,7 @@ void GNSSFlowgraph::init()
 
     observables_ = block_factory_->GetObservables(configuration_);
     pvt_ = block_factory_->GetPVT(configuration_);
-    passive_radar_  = block_factory -> GetPassiveRadar(configuration_);
+    passive_radar_  = block_factory -> GetPassiveRadar(configuration_,sig_conditioner_.size());
 
     std::shared_ptr<std::vector<std::unique_ptr<GNSSBlockInterface>>> channels = block_factory_->GetChannels(configuration_, queue_);
 

@@ -77,6 +77,9 @@ public:
             unsigned int in_streams, unsigned int out_streams,
             boost::shared_ptr<gr::msg_queue> queue = nullptr);
 
+    std::unique_ptr<GNSSBlockInterface> GNSSBlockFactory::GetPassiveRadar(std::shared_ptr<ConfigurationInterface> configuration, 
+                                                                          unsigned int sig_conditioner_count)
+
 private:
 
     std::unique_ptr<GNSSBlockInterface> GetChannel_1C(std::shared_ptr<ConfigurationInterface> configuration,

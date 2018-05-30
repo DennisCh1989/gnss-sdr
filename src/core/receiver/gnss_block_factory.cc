@@ -232,14 +232,13 @@ std::unique_ptr<GNSSBlockInterface> GNSSBlockFactory::GetObservables(std::shared
     return GetBlock(configuration, "Observables", implementation, Galileo_channels + GPS_channels, Galileo_channels + GPS_channels);
 }
 
-std::unique_ptr<GNSSBlockInterface> GNSSBlockFactory::GetPassiveRadar(std::shared_ptr<ConfigurationInterface> configuration)
+std::unique_ptr<GNSSBlockInterface> GNSSBlockFactory::GetPassiveRadar(std::shared_ptr<ConfigurationInterface> configuration, unsigned int sig_conditioner_count)
 {
     std::string default_implementation = "PassiveRadar";
     std::string implementation = configuration->property("PassiveRadar.implementation", default_implementation);
     unsigned int GPS_channels =configuration->property("Channels_1C.count", 0);
-    unsigned int sources_count = configuration_->property("Receiver.sources_count", 1);
     LOG(INFO) << "Getting PassiveRadar with implementation " << implementation;
-    return GetBlock(configuration, "PassiveRadar", implementation,sources_count, GPS_channels );
+    return GetBlock(configuration, "PassiveRadar", implementation,sig_conditioner_count, GPS_channels );
 }
 
 
