@@ -37,7 +37,8 @@
 #include <iostream>
 #include <gnuradio/io_signature.h>
 #include <glog/logging.h>
-#include <time.h>
+#include <random>
+#include <climits>
 
 using google::LogMessage;
 
@@ -72,8 +73,10 @@ direct_resampler_conditioner_cc::direct_resampler_conditioner_cc(
         }
     set_relative_rate(1.0 * sample_freq_out / sample_freq_in);
     set_output_multiple(1);
-    srand(time(NULL));
-    unique_tag_id = rand();
+    std::mt19937 rng;
+    rng.seed(std::random_device()());
+    std::uniform_int_distribution<std::mt19937::result_type> dist(0,UINT_MAX);
+    unique_tag_id = dist(rng);
 }
 
 
