@@ -67,6 +67,7 @@ private:
     unsigned int d_history;
     direct_resampler_conditioner_cc(double sample_freq_in,
             double sample_freq_out);
+    int unique_tag_id;
 
 public:
     ~direct_resampler_conditioner_cc();
