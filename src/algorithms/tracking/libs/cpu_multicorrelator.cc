@@ -35,7 +35,6 @@
 #include "cpu_multicorrelator.h"
 #include <cmath>
 #include <iostream>
-#include <volk_gnsssdr/volk_gnsssdr.h>
 
 
 cpu_multicorrelator::cpu_multicorrelator()
@@ -98,6 +97,8 @@ bool cpu_multicorrelator::set_input_output_vectors(std::complex<float>* corr_out
 }
 
 
+
+
 void cpu_multicorrelator::update_local_code(int correlator_length_samples, float rem_code_phase_chips, float code_phase_step_chips)
 {
     volk_gnsssdr_32fc_xn_resampler_32fc_xn(d_local_codes_resampled,
@@ -127,6 +128,10 @@ bool cpu_multicorrelator::Carrier_wipeoff_multicorrelator_resampler(
     return true;
 }
 
+std::shared_ptr<lv_32fc_t> cpu_multicorrelator::get_ref()
+{
+  return std::shared_ptr<lv_32fc_t> (d_local_codes_resampled[1]);
+}
 
 bool cpu_multicorrelator::free()
 {

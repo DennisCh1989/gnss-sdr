@@ -37,6 +37,8 @@
 
 
 #include <complex>
+#include <memory>
+#include <volk_gnsssdr/volk_gnsssdr.h>
 
 /*!
  * \brief Class that implements carrier wipe-off and correlators.
@@ -52,6 +54,7 @@ public:
     void update_local_code(int correlator_length_samples, float rem_code_phase_chips, float code_phase_step_chips);
     bool Carrier_wipeoff_multicorrelator_resampler(float rem_carrier_phase_in_rad, float phase_step_rad, float rem_code_phase_chips, float code_phase_step_chips, int signal_length_samples);
     bool free();
+    std::shared_ptr<lv_32fc_t> get_ref();
 
 private:
     // Allocate the device input vectors
