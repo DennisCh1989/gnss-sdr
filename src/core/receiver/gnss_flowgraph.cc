@@ -547,7 +547,7 @@ void GNSSFlowgraph::init()
 
     observables_ = block_factory_->GetObservables(configuration_);
     pvt_ = block_factory_->GetPVT(configuration_);
-    passive_radar_  = block_factory -> GetPassiveRadar(configuration_,sig_conditioner_.size());
+    passive_radar_  = block_factory_ -> GetPassiveRadar(configuration_,sig_conditioner_.size());
 
     std::shared_ptr<std::vector<std::unique_ptr<GNSSBlockInterface>>> channels = block_factory_->GetChannels(configuration_, queue_);
 

@@ -142,6 +142,8 @@ target_link_libraries(gnss_rx ${Boost_LIBRARIES}
                               acq_adapters
                               tracking_lib
                               tracking_adapters
+                              passive_radar_adapters
+                              #passive_radar_lib
                               channel_adapters
                               telemetry_decoder_adapters
                               obs_adapters
