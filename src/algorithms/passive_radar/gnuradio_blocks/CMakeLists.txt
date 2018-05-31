@@ -17,7 +17,7 @@
 #
 
 if(ENABLE_CUDA)
-     set(OPT_PASSIVE_RADAR_BLOCKS ${OPT_PASSIVE_RADAR_BLOCKS} passive_radar_cc.cc)
+     set(OPT_PASSIVE_RADAR_BLOCKS ${OPT_PASSIVE_RADAR_BLOCKS} )
      set(OPT_PASSIVE_RADAR_INCLUDES ${OPT_PASSIVE_RADAR_INCLUDES} ${CUDA_INCLUDE_DIRS})
      set(OPT_PASSIVE_RADAR_LIBRARIES ${OPT_PASSIVE_RADAR_LIBRARIES} ${CUDA_LIBRARIES}) 
 endif(ENABLE_CUDA)
@@ -49,8 +49,8 @@ file(GLOB PASSIVE_RADAR_GR_BLOCKS_HEADERS "*.h")
 list(SORT PASSIVE_RADAR_GR_BLOCKS_HEADERS)
 add_library(passive_radar_gr_blocks ${PASSIVE_RADAR_GR_BLOCKS_SOURCES} ${PASSIVE_RADAR_GR_BLOCKS_HEADERS})
 source_group(Headers FILES ${PASSIVE_RADAR_GR_BLOCKS_HEADERS})
-
-target_link_libraries(passive_radar_gr_blocks passive_radar_lib ${GNURADIO_RUNTIME_LIBRARIES} gnss_sp_libs ${Boost_LIBRARIES} ${VOLK_GNSSSDR_LIBRARIES} ${OPT_PASSIVE_RADAR_LIBRARIES})
+#delete passive_radar_lib now
+target_link_libraries(passive_radar_gr_blocks  ${GNURADIO_RUNTIME_LIBRARIES} gnss_sp_libs ${Boost_LIBRARIES} ${VOLK_GNSSSDR_LIBRARIES} ${OPT_PASSIVE_RADAR_LIBRARIES})
 
 if(NOT VOLK_GNSSSDR_FOUND)
     add_dependencies(passive_radar_gr_blocks volk_gnsssdr_module)

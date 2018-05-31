@@ -32,7 +32,7 @@ include_directories(
      ${CMAKE_SOURCE_DIR}/src/core/interfaces
      ${CMAKE_SOURCE_DIR}/src/core/receiver
      ${CMAKE_SOURCE_DIR}/src/algorithms/passive_radar/gnuradio_blocks
-     ${CMAKE_SOURCE_DIR}/src/algorithms/passive_radar/libs
+     #${CMAKE_SOURCE_DIR}/src/algorithms/passive_radar/libs
      ${CMAKE_SOURCE_DIR}/src/algorithms/libs
      ${GLOG_INCLUDE_DIRS}
      ${GFlags_INCLUDE_DIRS}
@@ -46,3 +46,4 @@ list(SORT PASSIVE_RADAR_ADAPTER_HEADERS)
 add_library(passive_radar_adapters ${PASSIVE_RADAR_ADAPTER_SOURCES} ${PASSIVE_RADAR_ADAPTER_HEADERS})
 source_group(Headers FILES ${PASSIVE_RADAR_ADAPTER_HEADERS})
 target_link_libraries(passive_radar_adapters passive_radar_gr_blocks gnss_sp_libs)
+

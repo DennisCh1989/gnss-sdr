@@ -35,11 +35,11 @@
                                                     )
     {
       return passive_radar_cc_sptr (new passive_radar_cc(
-                                                         float fs_in,
-                                                         float duration,
-                                                         unsigned int sources_count,
-                                                         unsigned int channels_count,
-                                                         unsigned int vector_length
+                                                         fs_in,
+                                                         duration,
+                                                         sources_count,
+                                                         channels_count,
+                                                         vector_length
                                                            ));
     }
 
@@ -53,7 +53,7 @@
                                        unsigned int channels_count ,
                                        unsigned int vector_length
                                         )
-      : gr::sync_block("passive_radar",
+      : gr::sync_block::sync_block("passive_radar",
               gr::io_signature::make(1, -1, sizeof(gr_complex)),
               gr::io_signature::make(0, 0, 0))
     {}

@@ -18,10 +18,12 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef INCLUDED_PASSIVE_RADAR_PASSIVE_RADAR_IMPL_H
-#define INCLUDED_PASSIVE_RADAR_PASSIVE_RADAR_IMPL_H
+#ifndef INCLUDED_PASSIVE_RADAR_CC_H
+#define INCLUDED_PASSIVE_RADAR_CC_H
 
-#include <passive_radar/passive_radar.h>
+#include <gnuradio/sync_block.h>
+
+class passive_radar_cc;
 
 typedef boost::shared_ptr<passive_radar_cc>
                passive_radar_cc_sptr;
@@ -35,7 +37,7 @@ make_passive_radar_cc(
                         unsigned int vector_length
                        );
 
-    class passive_radar_cc : public passive_radar
+    class passive_radar_cc : public gr::sync_block
     {
      private:
       friend passive_radar_cc_sptr make_passive_radar_cc(
@@ -47,8 +49,14 @@ make_passive_radar_cc(
                                                            );
 
      public:
-      passive_radar_cc();
-      ~passive_radar_cc();
+      passive_radar_cc(
+                        float fs_in,
+                        float duration,
+                        unsigned int sources_count,
+                        unsigned int channels_count ,
+                        unsigned int vector_length
+                         );
+      ~passive_radar_cc(); 
 
       // Where all the action really happens
       int work(int noutput_items,

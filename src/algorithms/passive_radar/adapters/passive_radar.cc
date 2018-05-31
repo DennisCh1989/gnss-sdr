@@ -46,7 +46,7 @@ using google::LogMessage;
 
 PassiveRadar::PassiveRadar(
         ConfigurationInterface* configuration, std::string role,
-        unsigned int source_count, unsigned int channels_count) : role_(role)
+        unsigned int sources_count, unsigned int channels_count) : role_(role)
 {
     DLOG(INFO) << "role " << role;
     //################# CONFIGURATION PARAMETERS ########################
@@ -65,7 +65,7 @@ PassiveRadar::PassiveRadar(
 }
 
 
-PassiveRadar:~PassiveRadar()
+PassiveRadar::~PassiveRadar()
 {}
 
 void PassiveRadar::connect(gr::top_block_sptr top_block)
@@ -84,7 +84,7 @@ void PassiveRadar::disconnect(gr::top_block_sptr top_block)
 
 gr::basic_block_sptr PassiveRadar::get_left_block()
 {
-    return passive_radar_;
+    return passive_radar_; 
 }
 
 
