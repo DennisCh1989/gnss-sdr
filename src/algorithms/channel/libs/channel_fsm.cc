@@ -260,7 +260,7 @@ void ChannelFsm::notify_stop_tracking()
         }
 }
 
-void ChannelFsm::set_reckernel_start(uint64_t message);
+void ChannelFsm::set_reckernel_start(uint64_t message)
 {
-   trk_ ->set_demod_phase(message);
+  // trk_ ->set_demod_phase(message);
 }

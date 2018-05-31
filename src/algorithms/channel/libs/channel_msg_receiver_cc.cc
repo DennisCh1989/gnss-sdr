@@ -71,7 +71,7 @@ void channel_msg_receiver_cc::msg_handler_events(pmt::pmt_t msg)
                 d_channel_fsm->Event_failed_tracking_standby();
                 break;
             default:
-                d_channel_fsm->Event_set_reckernel_start(static_cast<uint64_t> message);
+	        d_channel_fsm->Event_set_reckernel_start(static_cast<uint64_t> (message));
                 //LOG(WARNING) << "Default case, invalid message.";
                 break;
             }
