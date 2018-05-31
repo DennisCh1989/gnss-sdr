@@ -34,8 +34,8 @@
  */
 
 
-#ifndef GNSS_SDR_TRACKING_INTERFACE_H_
-#define GNSS_SDR_TRACKING_INTERFACE_H_
+#ifndef GNSS_SDR_PASSIVE_RADAR_INTERFACE_H_
+#define GNSS_SDR_PASSIVE_RADAR_INTERFACE_H_
 
 #include "gnss_block_interface.h"
 #include "gnss_synchro.h"
