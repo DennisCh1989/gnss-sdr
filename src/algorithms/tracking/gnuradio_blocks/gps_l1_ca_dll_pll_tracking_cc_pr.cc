@@ -403,7 +403,7 @@ int Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::general_work (int noutput_items __attribut
             d_acc_carrier_phase_rad -= d_carrier_phase_step_rad * d_current_prn_length_samples;
 
             //################### DLL COMMANDS #################################################
-            code phase step (Code resampler phase increment per sample) [chips/sample]
+            //code phase step (Code resampler phase increment per sample) [chips/sample]
             d_code_phase_step_chips = d_code_freq_chips / static_cast<double>(d_fs_in);
             // remnant code phase [chips]
             d_rem_code_phase_samples = K_blk_samples - d_current_prn_length_samples; // rounding error < 1 sample
@@ -420,7 +420,7 @@ int Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::general_work (int noutput_items __attribut
                 {
                     d_cn0_estimation_counter = 0;
                     // Code lock indicator
-                    d_CN0_SNV_dB_Hz = cn0_svn_estimator(d_Prompt_buffer, CN0_ESTIMATION_SAMPLES, d_fs_in);
+                    d_CN0_SNV_dB_Hz = cn0_svn_estimator(d_Prompt_buffer, CN0_ESTIMATION_SAMPLES, d_fs_in,GPS_L1_CA_CODE_LENGTH_CHIPS);
                     // Carrier lock indicator
                     d_carrier_lock_test = carrier_lock_detector(d_Prompt_buffer, CN0_ESTIMATION_SAMPLES);
                     // Loss of lock detection
