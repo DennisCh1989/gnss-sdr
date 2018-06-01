@@ -271,22 +271,31 @@ void GNSSFlowgraph::connect()
         }
     DLOG(INFO) << "Signal source connected to signal conditioner";
 
+    for (unsigned int i =0; i < sig_conditioner_.size();i++)
+      {
+        try
+            {
+                top_block_->connect(sig_conditioner_.at(i)->get_right_block(), 0,
+                            passive_radar_->get_left_block(),i);        
+            }
+            catch (std::exception& e)
+            {
+                    LOG(WARNING) << "Can't connect signal conditioner " << i << " to passive radar ";
+                    LOG(ERROR) << e.what();
+                    top_block_->disconnect_all();
+                    return;
+            }
+      }
+
     // Signal conditioner (selected_signal_source) >> channels (i) (dependent of their associated SignalSource_ID)
     int selected_signal_conditioner_ID;
-    std::set<int> ports = {};
     for (unsigned int i = 0; i < channels_count_; i++)
         {
             selected_signal_conditioner_ID = configuration_->property("Channel" + boost::lexical_cast<std::string>(i) + ".RF_channel_ID", 0);
             try
             {
                     top_block_->connect(sig_conditioner_.at(selected_signal_conditioner_ID)->get_right_block(), 0,
-                            channels_.at(i)->get_left_block(), 0);
-                    if (ports.find(selected_signal_conditioner_ID) == ports.end()) 
-                     {
-                       top_block_->connect(sig_conditioner_.at(selected_signal_conditioner_ID)->get_right_block(), 0,
-                            passive_radar_->get_left_block(),selected_signal_conditioner_ID);
-                       ports.insert(selected_signal_conditioner_ID);
-                     }     
+                            channels_.at(i)->get_left_block(), 0);    
             }
             catch (std::exception& e)
             {
