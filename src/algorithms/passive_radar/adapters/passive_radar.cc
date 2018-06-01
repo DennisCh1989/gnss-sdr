@@ -40,6 +40,7 @@
 #include <glog/logging.h>
 #include "GPS_L1_CA.h"
 #include "configuration_interface.h"
+#include <vector>
 
 
 using google::LogMessage;
@@ -54,13 +55,31 @@ PassiveRadar::PassiveRadar(
     float duration  = configuration->property("PASSIVE_RADAR.internal_fs_hz", 1);
     unsigned int vector_length = std::round(fs_in / (GPS_L1_CA_CODE_RATE_HZ / GPS_L1_CA_CODE_LENGTH_CHIPS));
 
+    std::vector<unsigned int> IDs;
+
+    for (unsigned int i =0;i < channels_count ;i++)
+      {
+            try
+            {
+                IDs.push_back(configuration_->property("PassiveRadar" + ".direct_path_id" + boost::lexical_cast<std::string>(i + sources_count), 0));        
+            }
+            catch (std::exception& e)
+            {
+                    LOG(WARNING) << "Can't find signal conditioner id " << i << " in passive radar ";
+                    LOG(ERROR) << e.what();
+                    top_block_->disconnect_all();
+                    //return;
+            }
+      }
+
     //################# MAKE PASSIVE RADAR GNURadio object ###################
     passive_radar_ = make_passive_radar_cc(
                                              fs_in,
                                              duration,
                                              sources_count,
                                              channels_count,
-                                             vector_length
+                                             vector_length,
+                                             IDs
                                                      );
 }
 

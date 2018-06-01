@@ -22,6 +22,7 @@
 #define INCLUDED_PASSIVE_RADAR_CC_H
 
 #include <gnuradio/sync_block.h>
+#include <vector>
 
 class passive_radar_cc;
 
@@ -34,7 +35,8 @@ make_passive_radar_cc(
                         float duration,
                         unsigned int sources_count,
                         unsigned int channels_count,
-                        unsigned int vector_length
+                        unsigned int vector_length,
+                        std::vector<unsigned int> IDs
                        );
 
     class passive_radar_cc : public gr::sync_block
@@ -45,7 +47,8 @@ make_passive_radar_cc(
                                                           float duration,
                                                           unsigned int sources_count,
                                                           unsigned int channels_count,
-                                                          unsigned int vector_length
+                                                          unsigned int vector_length,
+                                                          std::vector<unsigned int> IDs
                                                            );
 
      public:
@@ -54,7 +57,8 @@ make_passive_radar_cc(
                         float duration,
                         unsigned int sources_count,
                         unsigned int channels_count ,
-                        unsigned int vector_length
+                        unsigned int vector_length,
+                        std::vector<unsigned int> IDs
                          );
       ~passive_radar_cc(); 
 
