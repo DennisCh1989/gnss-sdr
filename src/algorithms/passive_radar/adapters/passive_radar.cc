@@ -41,6 +41,8 @@
 #include "GPS_L1_CA.h"
 #include "configuration_interface.h"
 #include <vector>
+#include <string>
+#include <boost/lexical_cast.hpp>
 
 
 using google::LogMessage;
@@ -61,13 +63,12 @@ PassiveRadar::PassiveRadar(
       {
             try
             {
-                IDs.push_back(configuration_->property("PassiveRadar" + ".direct_path_id" + boost::lexical_cast<std::string>(i + sources_count), 0));        
+                IDs.push_back(configuration->property("PassiveRadar.direct_path_id" + boost::lexical_cast<std::string>(i + sources_count), 0));        
             }
             catch (std::exception& e)
             {
                     LOG(WARNING) << "Can't find signal conditioner id " << i << " in passive radar ";
                     LOG(ERROR) << e.what();
-                    top_block_->disconnect_all();
                     //return;
             }
       }
