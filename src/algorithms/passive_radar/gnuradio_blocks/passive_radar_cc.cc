@@ -102,7 +102,7 @@ unsigned int threshold =0;
 		      unsigned int conditioner_id = d_IDs[channel_id];
 		      float *cVec =  &((float*) &input_items[conditioner_id])[symbol_pos*2];
 		      float *aVec =  cVec; 
-		      float *bVec =  &((float*) &input_items[channel_id])[symbol_pos*2];
+		      float *bVec =  &((float*) &input_items[channel_id+d_conditioners_count])[symbol_pos*2];
 		      unsigned int symbol_samples_length = pmt::to_long(symbols[i].value);
 		      volk_32f_x2_subtract_32f(cVec,aVec,bVec,symbol_samples_length*sizeof(gr_complex)/sizeof(float));
 		   }
