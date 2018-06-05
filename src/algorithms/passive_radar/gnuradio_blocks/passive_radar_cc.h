@@ -22,6 +22,8 @@
 #define INCLUDED_PASSIVE_RADAR_CC_H
 
 #include <gnuradio/sync_block.h>
+#include <gnuradio/filter/pfb_arb_resampler_ccf.h>
+#include <gnuradio/filter/pfb_arb_resampler.h>
 #include <vector>
 
 class passive_radar_cc;
@@ -56,7 +58,16 @@ make_passive_radar_cc(
       float d_fs_in;
       unsigned int  d_conv_chunk ;
       unsigned int d_conditioners_count;
+      unsigned int d_threshold;
       std::vector <unsigned int> d_IDs;
+      void detector(gr_vector_const_void_star input_items);
+      bool d_run_detector;
+      float d_doppler_range;
+      float d_doppler_step;
+      float d_resampling_doppler_dist;
+      gr::filter::kernel::pfb_arb_resampler_ccf *d_resamp;
+      std::shared_ptr<gr_complex> d_resampled_input;
+      std::shared_ptr<gr_complex> d_freq_shift_input; 
 
      public:
       passive_radar_cc(
