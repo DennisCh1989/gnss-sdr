@@ -76,36 +76,37 @@
     {
     }
 
+unsigned int threshold =0;
     int
     passive_radar_cc::work(int noutput_items __attribute__ ((unused)),
         gr_vector_const_void_star &input_items,
         gr_vector_void_star &output_items __attribute__ ((unused)))
     {
       
-      for (unsigned int signal_conditioner_id =0;signal_conditioner_id < d_conditioners_count;signal_conditioner_id++)
+      for (unsigned channel_id = 0; channel_id < d_channels_count; channel_id++)
 	{
-	  for (unsigned channel_id = d_sources_count; channel_id < d_channels_count+d_sources_count; channel_id++)
-	    {
 	      std::vector<gr::tag_t> symbols;
 	      get_tags_in_window(
 			        symbols,
-			        channel_id,
+			        channel_id+d_conditioners_count,
 			        0,
 			        d_conv_chunk ,
 				pmt::mp("reliable symbol")
                                  );
-
-	     for (unsigned int i =0;i < symbols.size();i++)
+	      
+	     if (symbols.size() >  threshold)
 	       {
-	         unsigned int symbol_pos = symbols[i].offset - nitems_read(0);
-		 unsigned int channel_index_in_IDs = channel_id - d_conditioners_count;
-		 float *cVec =  &((float*) &input_items[d_IDs[channel_index_in_IDs]])[symbol_pos*2];
-		 float *aVec =  cVec;
-		 float *bVec =  &((float*) &input_items[channel_id])[symbol_pos*2];
-		 unsigned int symbol_samples_length = pmt::to_long(symbols[i].value);
-		 volk_32f_x2_subtract_32f(cVec,aVec,bVec,symbol_samples_length*sizeof(gr_complex)/sizeof(float));
+		 for (unsigned int i =0;i < symbols.size();i++)
+		   {
+	              unsigned int symbol_pos = symbols[i].offset - nitems_read(0);
+		      unsigned int conditioner_id = d_IDs[channel_id];
+		      float *cVec =  &((float*) &input_items[conditioner_id])[symbol_pos*2];
+		      float *aVec =  cVec; 
+		      float *bVec =  &((float*) &input_items[channel_id])[symbol_pos*2];
+		      unsigned int symbol_samples_length = pmt::to_long(symbols[i].value);
+		      volk_32f_x2_subtract_32f(cVec,aVec,bVec,symbol_samples_length*sizeof(gr_complex)/sizeof(float));
+		   }
 	       }
-	    }
 	}
 
       // Tell runtime system how many output items we produced.
