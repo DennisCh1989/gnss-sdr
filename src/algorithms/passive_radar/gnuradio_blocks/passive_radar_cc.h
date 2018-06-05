@@ -51,6 +51,13 @@ make_passive_radar_cc(
                                                           std::vector<unsigned int> IDs
                                                            );
 
+      unsigned int d_channels_count;
+      unsigned int d_sources_count;
+      float d_fs_in;
+      unsigned int  d_conv_chunk ;
+      unsigned int d_conditioners_count;
+      std::vector <unsigned int> d_IDs;
+
      public:
       passive_radar_cc(
                         float fs_in,
