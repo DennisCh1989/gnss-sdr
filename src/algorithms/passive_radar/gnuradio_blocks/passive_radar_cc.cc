@@ -101,7 +101,7 @@
 		{
 		  float resampling_last_doppler = 0;
 		  gr_complex *in = (gr_complex*) input_items[conditioner_id];
-		  // here perform direct FFT for input_items[ch]
+		  // here perform direct FFT for input_items[ch+d_conditioners_count]
 		  
 		  for (float doppler = -d_doppler_range;doppler < d_doppler_range;doppler+=d_doppler_step)
 		    {
