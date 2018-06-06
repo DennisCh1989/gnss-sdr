@@ -82,6 +82,7 @@
       float max_chip_rate_err = d_doppler_range/GPS_L1_FREQ_HZ; 
       d_resampled_input = std::shared_ptr<gr_complex>(new gr_complex[static_cast<unsigned int>(d_conv_chunk*(1+max_chip_rate_err*2))]);
       d_freq_shift_input = std::shared_ptr<gr_complex>(new gr_complex[static_cast<unsigned int>(d_conv_chunk*(1+max_chip_rate_err*2))]); 
+      d_reliable_channel_flags.resize(d_channels_count);
     }
 
     /*
@@ -95,13 +96,15 @@
     {
       for (unsigned int  conditioner_id =0; conditioner_id < d_conditioners_count; conditioner_id++)
 	{
+
+          gr_complex *in = (gr_complex*) input_items[conditioner_id];
+
 	  for (unsigned ch =0;ch < d_channels_count;ch++)
 	    {
-	      if (conditioner_id == d_IDs[ch])
+	      if (conditioner_id == d_IDs[ch]  and d_reliable_channel_flags[ch])
 		{
 		  float resampling_last_doppler = 0;
-		  gr_complex *in = (gr_complex*) input_items[conditioner_id];
-		  // here perform direct FFT for input_items[ch]
+		  // here perform direct FFT for input_items[ch + d_conditioners_count]
 		  
 		  for (float doppler = -d_doppler_range;doppler < d_doppler_range;doppler+=d_doppler_step)
 		    {
@@ -151,6 +154,9 @@
 	   for (unsigned channel_id = 0; channel_id < d_channels_count; channel_id++)
 	     {
 	       std::vector<gr::tag_t> symbols;
+
+               d_reliable_channel_flags[channel_id] = false;
+
 	       get_tags_in_window(
 				  symbols,
 				  channel_id+d_conditioners_count,
@@ -161,6 +167,7 @@
 	      
 	       if (symbols.size() >  d_threshold)
 		 {
+                   d_reliable_channel_flags[channel_id] = true;
 		   for (unsigned int i =0;i < symbols.size();i++)
 		     {
 		       unsigned int symbol_pos = symbols[i].offset - nitems_read(0);

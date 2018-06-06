@@ -60,6 +60,7 @@ make_passive_radar_cc(
       unsigned int d_conditioners_count;
       unsigned int d_threshold;
       std::vector <unsigned int> d_IDs;
+      std::vector <bool> d_reliable_channel_flags;
       void detector(gr_vector_const_void_star input_items);
       bool d_run_detector;
       float d_doppler_range;
