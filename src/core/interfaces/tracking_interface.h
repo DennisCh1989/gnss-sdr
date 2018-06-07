@@ -39,6 +39,7 @@
 
 #include "gnss_block_interface.h"
 #include "gnss_synchro.h"
+#include <cinttypes>
 
 template<typename Data>class concurrent_queue;
 
@@ -57,6 +58,7 @@ public:
     virtual void start_tracking() = 0;
     virtual void set_gnss_synchro(Gnss_Synchro* gnss_synchro) = 0;
     virtual void set_channel(unsigned int channel) = 0;
+    virtual void set_demod_phase(uint64_t message){}
 };
 
 #endif /* GNSS_SDR_TRACKING_INTERFACE_H_ */
