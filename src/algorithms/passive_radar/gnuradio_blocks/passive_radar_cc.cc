@@ -32,7 +32,8 @@
 
     const float DOPPLER_DEFINITION = 0.25;
     const float MAX_TIME_SHIFT     = 0.1;
-    const unsigned int MIN_PATHS_REQUIRED = 4; 
+    const unsigned int MIN_PATHS_REQUIRED = 4;
+    const float STRONG_BITS_FREQ = 0.9;
 
     passive_radar_cc_sptr make_passive_radar_cc( 
                                                   float fs_in,
@@ -76,7 +77,7 @@
       d_run_detector = false;
       d_doppler_range = -5000;
       d_doppler_step = (1/duration)*DOPPLER_DEFINITION;
-      d_threshold =static_cast<unsigned int> (duration*GPS_CA_TELEMETRY_RATE_BITS_SECOND*GPS_CA_TELEMETRY_SYMBOLS_PER_BIT);
+      d_threshold =static_cast<unsigned int> (duration*GPS_CA_TELEMETRY_RATE_BITS_SECOND*STRONG_BITS_FREQ);
       d_resampling_doppler_dist =MAX_TIME_SHIFT/(GPS_L1_CA_CODE_RATE_HZ*duration) *GPS_L1_FREQ_HZ;
       std::vector<float> taps;
       d_resamp = new gr::filter::kernel::pfb_arb_resampler_ccf(1, taps, 1);
@@ -84,6 +85,8 @@
       d_resampled_input = std::shared_ptr<gr_complex>(new gr_complex[static_cast<unsigned int>(d_conv_chunk*(1+max_chip_rate_err*2))]);
       d_freq_shift_input = std::shared_ptr<gr_complex>(new gr_complex[static_cast<unsigned int>(d_conv_chunk*(1+max_chip_rate_err*2))]); 
       d_reliable_channel_flags.resize(d_channels_count);
+      unsigned int d_vector_length = static_cast<unsigned int> (fs_in / (GPS_L1_CA_CODE_RATE_HZ / GPS_L1_CA_CODE_LENGTH_CHIPS))*GPS_CA_TELEMETRY_SYMBOLS_PER_BIT*2;
+      set_history(d_vector_length);
     }
 
     /*
@@ -157,32 +160,33 @@
 
 	   for (unsigned channel_id = 0; channel_id < d_channels_count; channel_id++)
 	     {
-	       std::vector<gr::tag_t> symbols;
+	       std::vector<gr::tag_t> bits;
 
                d_reliable_channel_flags[channel_id] = false;
 
 	       get_tags_in_window(
-				  symbols,
+				  bits,
 				  channel_id+d_conditioners_count,
 				  0,
 				  d_conv_chunk ,
 				  pmt::mp("reliable symbol")
 				  );
 	      
-	       if (symbols.size()-1 >  d_threshold)
+	       if (bits.size() >  d_threshold)
 		 {
                    d_reliable_channel_flags[channel_id] = true;
 		   reliable_channels++;
+
+		   unsigned int conditioner_id_for_chan = d_IDs[channel_id];
 		   
-		   for (unsigned int i =0;i < symbols.size();i++)
+		   for (unsigned int i =0;i < bits.size() ;i++)
 		     {
-		       unsigned int symbol_pos = symbols[i].offset - nitems_read(0);
-		       unsigned int conditioner_id_for_chan = d_IDs[channel_id];
-		       float *cVec =  &((float*) &input_items[conditioner_id_for_chan])[symbol_pos*2];
+		       unsigned int bit_pos = bits[i].offset - nitems_read(0);
+		       float *cVec =  &((float*) &input_items[conditioner_id_for_chan])[bit_pos*2];
 		       float *aVec =  cVec; 
-		       float *bVec =  &((float*) &input_items[channel_id+d_conditioners_count])[symbol_pos*2];
-		       unsigned int symbol_samples_length = pmt::to_long(symbols[i].value);
-		       volk_32f_x2_subtract_32f(cVec,aVec,bVec,symbol_samples_length*sizeof(gr_complex)/sizeof(float));
+		       float *bVec =  &((float*) &input_items[channel_id+d_conditioners_count])[bit_pos*2];
+		       unsigned int bit_samples_length = pmt::to_long(bits[i].value);
+		       volk_32f_x2_subtract_32f(cVec,aVec,bVec,bit_samples_length*sizeof(gr_complex)/sizeof(float));
 		     }
 		 }
 	     }
