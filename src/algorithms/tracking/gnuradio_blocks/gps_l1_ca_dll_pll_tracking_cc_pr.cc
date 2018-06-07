@@ -59,6 +59,7 @@
 #define MAXIMUM_LOCK_FAIL_COUNTER 50
 #define CARRIER_LOCK_THRESHOLD 0.85
 
+const float MAX_DURATION = 2.5; // secs
 
 using google::LogMessage;
 extern int demod_symbols;
@@ -180,6 +181,8 @@ Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::Gps_L1_Ca_Dll_Pll_Tracking_cc_pr(
     d_rem_code_phase_chips = 0.0;
     d_code_phase_step_chips = 0.0;
     d_carrier_phase_step_rad = 0.0;
+    const long max_conv_chunk = static_cast<unsigned int> (MAX_DURATION * fs_in);
+    set_min_output_buffer(1,max_conv_chunk);
 
     set_relative_rate(1.0 / static_cast<double>(d_vector_length));
 }
