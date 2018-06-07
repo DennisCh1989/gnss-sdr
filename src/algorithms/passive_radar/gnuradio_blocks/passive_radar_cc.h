@@ -69,6 +69,7 @@ make_passive_radar_cc(
       gr::filter::kernel::pfb_arb_resampler_ccf *d_resamp;
       std::shared_ptr<gr_complex> d_resampled_input;
       std::shared_ptr<gr_complex> d_freq_shift_input; 
+      unsigned int d_vector_length;
 
      public:
       passive_radar_cc(

@@ -32,6 +32,7 @@
 
     const float DOPPLER_DEFINITION = 0.25;
     const float MAX_TIME_SHIFT     = 0.1;
+    const unsigned int MIN_PATHS_REQUIRED = 4; 
 
     passive_radar_cc_sptr make_passive_radar_cc( 
                                                   float fs_in,
@@ -75,7 +76,7 @@
       d_run_detector = false;
       d_doppler_range = -5000;
       d_doppler_step = (1/duration)*DOPPLER_DEFINITION;
-      d_threshold =round (duration*GPS_CA_TELEMETRY_RATE_BITS_SECOND*GPS_CA_TELEMETRY_SYMBOLS_PER_BIT);
+      d_threshold =static_cast<unsigned int> (duration*GPS_CA_TELEMETRY_RATE_BITS_SECOND*GPS_CA_TELEMETRY_SYMBOLS_PER_BIT);
       d_resampling_doppler_dist =MAX_TIME_SHIFT/(GPS_L1_CA_CODE_RATE_HZ*duration) *GPS_L1_FREQ_HZ;
       std::vector<float> taps;
       d_resamp = new gr::filter::kernel::pfb_arb_resampler_ccf(1, taps, 1);
@@ -104,17 +105,13 @@
 	      if (conditioner_id == d_IDs[ch]  and d_reliable_channel_flags[ch])
 		{
 		  float resampling_last_doppler = 0;
-<<<<<<< HEAD
-		  gr_complex *in = (gr_complex*) input_items[conditioner_id];
-		  // here perform direct FFT for input_items[ch+d_conditioners_count]
-=======
-		  // here perform direct FFT for input_items[ch + d_conditioners_count]
->>>>>>> origin/radar
 		  
-		  for (float doppler = -d_doppler_range;doppler < d_doppler_range;doppler+=d_doppler_step)
+		  // here perform direct FFT for input_items[ch + d_conditioners_count]
+		  
+		  for (float doppler = -d_doppler_range;doppler < d_doppler_range;doppler+=d_doppler_step) 
 		    {
 
-		      if (abs(doppler -resampling_last_doppler) >d_resampling_doppler_dist)
+		      if (doppler -resampling_last_doppler >d_resampling_doppler_dist or doppler == - d_doppler_range)
 			{
 			  resampling_last_doppler = doppler;
 			  
@@ -156,6 +153,8 @@
 	{
 	   d_run_detector = true;
 
+	   unsigned int reliable_channels =0;
+
 	   for (unsigned channel_id = 0; channel_id < d_channels_count; channel_id++)
 	     {
 	       std::vector<gr::tag_t> symbols;
@@ -170,9 +169,11 @@
 				  pmt::mp("reliable symbol")
 				  );
 	      
-	       if (symbols.size() >  d_threshold)
+	       if (symbols.size()-1 >  d_threshold)
 		 {
                    d_reliable_channel_flags[channel_id] = true;
+		   reliable_channels++;
+		   
 		   for (unsigned int i =0;i < symbols.size();i++)
 		     {
 		       unsigned int symbol_pos = symbols[i].offset - nitems_read(0);
@@ -185,8 +186,15 @@
 		     }
 		 }
 	     }
-	   
-	   std::thread(&passive_radar_cc::detector,this,input_items);
+
+	   if (reliable_channels >= MIN_PATHS_REQUIRED)
+	     {
+	       std::thread(&passive_radar_cc::detector,this,input_items);
+	     }
+	   else
+	     {
+	       d_run_detector = false;
+	     }
 	}
       
       // Tell runtime system how many output items we produced.
