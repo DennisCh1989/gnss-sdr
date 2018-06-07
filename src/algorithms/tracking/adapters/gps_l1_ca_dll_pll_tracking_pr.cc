@@ -36,7 +36,7 @@
  */
 
 
-#include "gps_l1_ca_dll_pll_tracking.h"
+#include "gps_l1_ca_dll_pll_tracking_pr.h"
 #include <glog/logging.h>
 #include "GPS_L1_CA.h"
 #include "configuration_interface.h"
@@ -76,7 +76,7 @@ GpsL1CaDllPllTracking::GpsL1CaDllPllTracking(
     if (item_type.compare("gr_complex") == 0)
         {
             item_size_ = sizeof(gr_complex);
-            tracking_ = gps_l1_ca_dll_pll_make_tracking_cc(
+            tracking_ = gps_l1_ca_dll_pll_make_tracking_cc_pr(
                     f_if,
                     fs_in,
                     vector_length,
@@ -120,6 +120,12 @@ void GpsL1CaDllPllTracking::set_gnss_synchro(Gnss_Synchro* p_gnss_synchro)
 {
     tracking_->set_gnss_synchro(p_gnss_synchro);
 }
+
+void GpsL1CaDllPllTracking::set_demod_phase(uint64_t demod_phase)
+{
+  tracking_->set_demod_phase(demod_phase);
+}
+
 
 void GpsL1CaDllPllTracking::connect(gr::top_block_sptr top_block)
 {
