@@ -62,8 +62,8 @@
 const float MAX_DURATION = 2.5; // secs
 
 using google::LogMessage;
-extern int demod_symbols;
-extern bool demod_state; 
+
+extern std::vector<bool> reliable_channel;
 
 gps_l1_ca_dll_pll_tracking_cc_pr_sptr
 gps_l1_ca_dll_pll_make_tracking_cc_pr(
@@ -115,8 +115,6 @@ Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::Gps_L1_Ca_Dll_Pll_Tracking_cc_pr(
     d_dump_filename = dump_filename;
 
     d_current_prn_length_samples = static_cast<int>(d_vector_length);
-
-    set_min_output_buffer(1,d_vector_length*2*GPS_CA_TELEMETRY_SYMBOLS_PER_BIT);
 
     // Initialize tracking  ==========================================
     d_code_loop_filter.set_DLL_BW(dll_bw_hz);
@@ -181,10 +179,12 @@ Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::Gps_L1_Ca_Dll_Pll_Tracking_cc_pr(
     d_rem_code_phase_chips = 0.0;
     d_code_phase_step_chips = 0.0;
     d_carrier_phase_step_rad = 0.0;
-    const long max_conv_chunk = static_cast<unsigned int> (MAX_DURATION * fs_in);
+    const long max_conv_chunk = static_cast<long> (MAX_DURATION * fs_in);
     set_min_output_buffer(1,max_conv_chunk);
 
     set_relative_rate(1.0 / static_cast<double>(d_vector_length));
+    reliable_channel.push_back(false);
+    d_tracking_phase =0;
 }
 
 
@@ -349,20 +349,13 @@ int Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::general_work (int noutput_items __attribut
                             nitems_written(0) - d_demod_phase 
 							   );
 
+	     reliable_channel[d_channel] = (d_tracking_phase >GPS_CA_TELEMETRY_SYMBOLS_PER_BIT*GPS_CA_TELEMETRY_RATE_BITS_SECOND);
+	     d_tracking_phase++;
+
 	     if (symb_length >0)
 	       {
-		 if (d_demod_phase >0)
-		   {
-		     add_item_tag(
-			 1,
-			 d_sample_counter,
-			 pmt::mp("reliable symbol"),
-			 pmt::from_long(symb_length)
-                                 ); 
-		   }
-
-		  produce(1,symb_length);
-		  d_sample_counter += symb_length;
+		 produce(1,symb_length);
+		 d_sample_counter += symb_length;
 	       }
 	     else
 	       {
@@ -443,6 +436,8 @@ int Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::general_work (int noutput_items __attribut
                             d_carrier_lock_fail_counter = 0;
                             d_enable_tracking = false; // TODO: check if disabling tracking is consistent with the channel state machine
                             d_demod_phase =0;
+			    d_tracking_phase=0;
+			    reliable_channel[d_channel]=false;
 			    unsigned int remand_samples_in_ker =  rec_kernel.clear_rec_ker( (gr_complex *)output_items[1]);
 			    produce(1, remand_samples_in_ker);
 			    d_sample_counter +=remand_samples_in_ker;
@@ -569,6 +564,11 @@ void Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::set_channel(unsigned int channel)
                     }
                 }
         }
+}
+
+void Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::set_demod_phase(uint64_t demod_phase)
+{
+  d_demod_phase = demod_phase;
 }
 
 

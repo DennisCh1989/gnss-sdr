@@ -76,13 +76,13 @@ public:
     void set_channel(unsigned int channel);
     void set_gnss_synchro(Gnss_Synchro* p_gnss_synchro);
     void start_tracking();
+    void set_demod_phase (uint64_t demod_phase);
 
     int general_work (int noutput_items, gr_vector_int &ninput_items,
             gr_vector_const_void_star &input_items, gr_vector_void_star &output_items);
 
     void forecast (int noutput_items, gr_vector_int &ninput_items_required);
-    void set_demod_phase(uint64_t demod_phase) {d_demod_phase = demod_phase;}
-
+    
 private:
     friend gps_l1_ca_dll_pll_tracking_cc_pr_sptr
     gps_l1_ca_dll_pll_make_tracking_cc_pr(long if_freq,
@@ -135,6 +135,7 @@ private:
     cpu_multicorrelator multicorrelator_cpu;
     recovery_kernel rec_kernel;
     uint64_t d_demod_phase;
+    uint64_t d_tracking_phase;
 
     // tracking vars
     double d_code_freq_chips;
