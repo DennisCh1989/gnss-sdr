@@ -125,7 +125,7 @@
 		  {
 		    for (unsigned ch =0;ch < d_channels_count;ch++)
 		      {
-			if (reliable_channel[ch] < GPS_CA_TELEMETRY_SYMBOLS_PER_BIT*GPS_CA_TELEMETRY_RATE_BITS_SECOND) continue;
+			if (reliable_channel[ch] ) continue;
 
 			gr_complex *in = (gr_complex*) input_items[d_IDs[ch]];
 					  
