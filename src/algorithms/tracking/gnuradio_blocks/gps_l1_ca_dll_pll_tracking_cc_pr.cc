@@ -49,6 +49,7 @@
 #include "lock_detectors.h"
 #include "GPS_L1_CA.h"
 #include "control_message_factory.h"
+#include <volk/volk.h>
 
 
 /*!
@@ -63,7 +64,7 @@ const float MAX_DURATION = 2.5; // secs
 
 using google::LogMessage;
 
-extern std::vector<bool> reliable_channel;
+extern std::vector<uint64_t> reliable_channel;
 
 gps_l1_ca_dll_pll_tracking_cc_pr_sptr
 gps_l1_ca_dll_pll_make_tracking_cc_pr(
@@ -183,8 +184,7 @@ Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::Gps_L1_Ca_Dll_Pll_Tracking_cc_pr(
     set_min_output_buffer(1,max_conv_chunk);
 
     set_relative_rate(1.0 / static_cast<double>(d_vector_length));
-    reliable_channel.push_back(false);
-    d_tracking_phase =0;
+    reliable_channel.push_back(0);
 }
 
 
@@ -295,7 +295,7 @@ int Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::general_work (int noutput_items __attribut
     double code_error_filt_chips = 0.0;
 
     // Block input data and block output stream pointers
-    const gr_complex* in = (gr_complex*) input_items[0]; //PRN start block alignment
+    gr_complex* in = (gr_complex*) input_items[0]; //PRN start block alignment
     Gnss_Synchro **out = (Gnss_Synchro **) &output_items[0];
 
     // GNSS_SYNCHRO OBJECT to interchange data between tracking->telemetry_decoder
@@ -339,7 +339,7 @@ int Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::general_work (int noutput_items __attribut
                     d_code_phase_step_chips,
                     d_current_prn_length_samples);
 
-	     unsigned int symb_length = rec_kernel.gen(
+	    unsigned int symb_length = rec_kernel.gen(
                             d_rem_carr_phase_rad,
                             d_carrier_phase_step_rad,
 			    d_current_prn_length_samples,
@@ -349,9 +349,15 @@ int Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::general_work (int noutput_items __attribut
                             nitems_written(0) - d_demod_phase 
 							   );
 
-	     reliable_channel[d_channel] = (d_tracking_phase >GPS_CA_TELEMETRY_SYMBOLS_PER_BIT*GPS_CA_TELEMETRY_RATE_BITS_SECOND);
-	     d_tracking_phase++;
+	     volk_32f_x2_subtract_32f(
+				      (float*) input_items[0],
+				      (float*) input_items[0],
+				      (float*) output_items[1],
+				      d_current_prn_length_samples*sizeof(gr_complex)/sizeof(float)
+				     );
 
+	     reliable_channel[d_channel]++; 
+  
 	     if (symb_length >0)
 	       {
 		 produce(1,symb_length);
@@ -436,8 +442,7 @@ int Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::general_work (int noutput_items __attribut
                             d_carrier_lock_fail_counter = 0;
                             d_enable_tracking = false; // TODO: check if disabling tracking is consistent with the channel state machine
                             d_demod_phase =0;
-			    d_tracking_phase=0;
-			    reliable_channel[d_channel]=false;
+			    reliable_channel[d_channel]=0;
 			    unsigned int remand_samples_in_ker =  rec_kernel.clear_rec_ker( (gr_complex *)output_items[1]);
 			    produce(1, remand_samples_in_ker);
 			    d_sample_counter +=remand_samples_in_ker;
