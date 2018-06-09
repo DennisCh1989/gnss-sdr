@@ -28,12 +28,21 @@
 #include <pmt/pmt.h>
 #include <gnuradio/tags.h>
 #include <volk/volk.h>
+#include <gnuradio/filter/firdes.h>
 #include <thread>
+#include <limits> 
 
     const float DOPPLER_DEFINITION = 0.25;
     const float MAX_TIME_SHIFT     = 0.1;
     const unsigned int MIN_PATHS_REQUIRED = 4;
     const float STRONG_BITS_FREQ = 0.9;
+    const float eps = std::numeric_limits<float>::epsilon();
+    const double GAIN = 1.0;
+    const double CUTOFF_FREQ = 1.0;
+    const double TRANSITION_WIDTH = 1.0;
+    gr::filter::firdes::win_type window = gr::filter::firdes::WIN_HAMMING;
+    const double BETA = 6.76;
+    unsigned int FILTER_SIZE = 32;
 
     passive_radar_cc_sptr make_passive_radar_cc( 
                                                   float fs_in,
@@ -78,8 +87,18 @@
       d_doppler_range = -5000;
       d_doppler_step = (1/duration)*DOPPLER_DEFINITION;
       d_resampling_doppler_dist =MAX_TIME_SHIFT/(GPS_L1_CA_CODE_RATE_HZ*duration) *GPS_L1_FREQ_HZ;
-      std::vector<float> taps;
-      d_resamp = new gr::filter::kernel::pfb_arb_resampler_ccf(1, taps, 1);
+      d_resampling_step = static_cast<unsigned int> ((d_resampling_doppler_dist+eps)/d_doppler_step);
+           
+      std::vector<float> taps = gr::filter::firdes::low_pass(
+							     GAIN,
+							     fs_in,
+							     fs_in*CUTOFF_FREQ,
+							     fs_in*TRANSITION_WIDTH,
+							     window,
+							     BETA
+							     );
+      
+      d_resamp = new gr::filter::kernel::pfb_arb_resampler_ccf(1, taps, FILTER_SIZE);
       float max_chip_rate_err = d_doppler_range/GPS_L1_FREQ_HZ; 
       d_resampled_input = std::shared_ptr<gr_complex>(new gr_complex[static_cast<unsigned int>(d_conv_chunk*(1+max_chip_rate_err*2))]);
       d_freq_shift_input = std::shared_ptr<gr_complex>(new gr_complex[static_cast<unsigned int>(d_conv_chunk*(1+max_chip_rate_err*2))]); 
@@ -119,18 +138,15 @@
 						 );
 		  
 			// here perform direct FFT for input_items[ch + d_conditioners_count]
-
-			float chip_rate_err=0;
-		  
-			for (float doppler = -d_doppler_range;doppler < d_doppler_range;doppler+=d_doppler_step) 
+	  
+			for (float  doppler = -d_doppler_range;doppler < d_doppler_range;doppler+=d_doppler_step) 
 			  {
 
-			    if (abs(doppler / GPS_L1_FREQ_HZ - chip_rate_err) > d_resampling_doppler_dist/GPS_L1_FREQ_HZ)
+			    if (static_cast<unsigned int>((doppler + d_doppler_range + eps)/d_doppler_step) % d_resampling_step == 0)
 			      {
-				chip_rate_err =doppler / GPS_L1_FREQ_HZ;
-
+				
 				d_resamp -> set_phase(0);
-				d_resamp -> set_rate(1+chip_rate_err);
+				d_resamp -> set_rate(static_cast<float>(FILTER_SIZE)*(1+doppler/GPS_L1_FREQ_HZ));
 				int nitems_read;
 				int processed = d_resamp->filter(d_resampled_input.get(), in, d_conv_chunk, nitems_read);
 

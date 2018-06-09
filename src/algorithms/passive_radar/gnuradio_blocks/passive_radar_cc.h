@@ -61,7 +61,6 @@ make_passive_radar_cc(
       unsigned int d_threshold;
       std::vector <unsigned int> d_IDs;
       std::vector <bool> d_reliable_channel_flags;
-      void detector(gr_vector_const_void_star input_items);
       bool d_run_detector;
       float d_doppler_range;
       float d_doppler_step;
@@ -70,6 +69,7 @@ make_passive_radar_cc(
       std::shared_ptr<gr_complex> d_resampled_input;
       std::shared_ptr<gr_complex> d_freq_shift_input; 
       unsigned int d_vector_length;
+      unsigned int d_resampling_step;
 
      public:
       passive_radar_cc(
