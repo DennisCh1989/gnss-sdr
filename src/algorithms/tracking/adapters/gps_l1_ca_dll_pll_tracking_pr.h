@@ -35,8 +35,8 @@
  * -------------------------------------------------------------------------
  */
 
-#ifndef GNSS_SDR_GPS_L1_CA_DLL_PLL_TRACKING_H_
-#define GNSS_SDR_GPS_L1_CA_DLL_PLL_TRACKING_H_
+#ifndef GNSS_SDR_GPS_L1_CA_DLL_PLL_TRACKING_PR_H_
+#define GNSS_SDR_GPS_L1_CA_DLL_PLL_TRACKING_PR_H_
 
 #include <string>
 #include "tracking_interface.h"
@@ -48,15 +48,15 @@ class ConfigurationInterface;
 /*!
  * \brief This class implements a code DLL + carrier PLL tracking loop
  */
-class GpsL1CaDllPllTracking : public TrackingInterface
+class GpsL1CaDllPllTracking_pr : public TrackingInterface
 {
 public:
-    GpsL1CaDllPllTracking(ConfigurationInterface* configuration,
+    GpsL1CaDllPllTracking_pr(ConfigurationInterface* configuration,
             std::string role,
             unsigned int in_streams,
             unsigned int out_streams);
 
-    virtual ~GpsL1CaDllPllTracking();
+    virtual ~GpsL1CaDllPllTracking_pr();
 
     std::string role()
     {
@@ -66,7 +66,7 @@ public:
     //! Returns "GPS_L1_CA_DLL_PLL_Tracking"
     std::string implementation()
     {
-        return "GPS_L1_CA_DLL_PLL_Tracking";
+        return "GPS_L1_CA_DLL_PLL_Tracking_pr";
     }
 
     size_t item_size()
@@ -101,4 +101,4 @@ private:
     unsigned int out_streams_;
 };
 
-#endif // GNSS_SDR_GPS_L1_CA_DLL_PLL_TRACKING_H_
+#endif // GNSS_SDR_GPS_L1_CA_DLL_PLL_TRACKING_PR_H_

@@ -44,7 +44,7 @@
 
 using google::LogMessage;
 
-GpsL1CaDllPllTracking::GpsL1CaDllPllTracking(
+GpsL1CaDllPllTracking_pr::GpsL1CaDllPllTracking_pr(
         ConfigurationInterface* configuration, std::string role,
         unsigned int in_streams, unsigned int out_streams) :
                 role_(role), in_streams_(in_streams), out_streams_(out_streams)
@@ -96,11 +96,11 @@ GpsL1CaDllPllTracking::GpsL1CaDllPllTracking(
 }
 
 
-GpsL1CaDllPllTracking::~GpsL1CaDllPllTracking()
+GpsL1CaDllPllTracking_pr::~GpsL1CaDllPllTracking_pr()
 {}
 
 
-void GpsL1CaDllPllTracking::start_tracking()
+void GpsL1CaDllPllTracking_pr::start_tracking()
 {
     tracking_->start_tracking();
 }
@@ -109,45 +109,45 @@ void GpsL1CaDllPllTracking::start_tracking()
 /*
  * Set tracking channel unique ID
  */
-void GpsL1CaDllPllTracking::set_channel(unsigned int channel)
+void GpsL1CaDllPllTracking_pr::set_channel(unsigned int channel)
 {
     channel_ = channel;
     tracking_->set_channel(channel);
 }
 
 
-void GpsL1CaDllPllTracking::set_gnss_synchro(Gnss_Synchro* p_gnss_synchro)
+void GpsL1CaDllPllTracking_pr::set_gnss_synchro(Gnss_Synchro* p_gnss_synchro)
 {
     tracking_->set_gnss_synchro(p_gnss_synchro);
 }
 
-void GpsL1CaDllPllTracking::set_demod_phase(uint64_t demod_phase)
+void GpsL1CaDllPllTracking_pr::set_demod_phase(uint64_t demod_phase)
 {
   tracking_->set_demod_phase(demod_phase);
 }
 
 
-void GpsL1CaDllPllTracking::connect(gr::top_block_sptr top_block)
+void GpsL1CaDllPllTracking_pr::connect(gr::top_block_sptr top_block)
 {
     if(top_block) { /* top_block is not null */};
     //nothing to connect, now the tracking uses gr_sync_decimator
 }
 
 
-void GpsL1CaDllPllTracking::disconnect(gr::top_block_sptr top_block)
+void GpsL1CaDllPllTracking_pr::disconnect(gr::top_block_sptr top_block)
 {
     if(top_block) { /* top_block is not null */};
     //nothing to disconnect, now the tracking uses gr_sync_decimator
 }
 
 
-gr::basic_block_sptr GpsL1CaDllPllTracking::get_left_block()
+gr::basic_block_sptr GpsL1CaDllPllTracking_pr::get_left_block()
 {
     return tracking_;
 }
 
 
-gr::basic_block_sptr GpsL1CaDllPllTracking::get_right_block()
+gr::basic_block_sptr GpsL1CaDllPllTracking_pr::get_right_block()
 {
     return tracking_;
 }
