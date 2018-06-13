@@ -16,6 +16,7 @@
 # along with GNSS-SDR. If not, see <http://www.gnu.org/licenses/>.
 #
 
+add_subdirectory(libs)
 add_subdirectory(adapters)
 add_subdirectory(gnuradio_blocks)
-add_subdirectory(libs)
+
