@@ -27,6 +27,7 @@ add_subdirectory(resampler)
 add_subdirectory(signal_generator)
 add_subdirectory(signal_source)
 add_subdirectory(input_filter)
+add_subdirectory(passive_radar)
 add_subdirectory(tracking)
 add_subdirectory(PVT)
-add_subdirectory(passive_radar)
+
