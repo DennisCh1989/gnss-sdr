@@ -78,6 +78,7 @@
 #include "galileo_e1_pcps_quicksync_ambiguous_acquisition.h"
 #include "galileo_e5a_noncoherent_iq_acquisition_caf.h"
 #include "gps_l1_ca_dll_pll_tracking.h"
+#include "gps_l1_ca_dll_pll_tracking_pr.h"
 #include "gps_l1_ca_dll_pll_c_aid_tracking.h"
 #include "gps_l1_ca_tcp_connector_tracking.h"
 #include "galileo_e1_dll_pll_veml_tracking.h"
@@ -1255,6 +1256,12 @@ std::unique_ptr<TrackingInterface> GNSSBlockFactory::GetTrkBlock(
     std::unique_ptr<TrackingInterface> block;
 
     // TRACKING BLOCKS -------------------------------------------------------------
+    if (implementation.compare("GPS_L1_CA_DLL_PLL_Tracking_PR") == 0)
+       {
+	 std::unique_ptr<TrackingInterface> block_(new GpsL1CaDllPllTracking_pr(configuration.get(), role, in_streams,
+                    out_streams));
+            block = std::move(block_);
+       }
     if (implementation.compare("GPS_L1_CA_DLL_PLL_Tracking") == 0)
         {
             std::unique_ptr<TrackingInterface> block_(new GpsL1CaDllPllTracking(configuration.get(), role, in_streams,
