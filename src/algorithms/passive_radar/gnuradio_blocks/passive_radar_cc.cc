@@ -34,12 +34,11 @@
 
     const float DOPPLER_DEFINITION = 0.25;
     const float MAX_TIME_SHIFT     = 0.1;
-    const unsigned int MIN_PATHS_REQUIRED = 4;
-    const float STRONG_BITS_FREQ = 0.9;
     const float eps = std::numeric_limits<float>::epsilon();
     const double GAIN = 1.0;
     const double END_PASS_BAND = 0.44;
-    const double START_STOP_BAND = 0.49; 
+    const double START_STOP_BAND = 0.49;
+    const double ATTENUATION = 20;
     gr::filter::firdes::win_type WINDOW = gr::filter::firdes::WIN_HAMMING;
     unsigned int FILTER_SIZE = 32;
 
@@ -78,7 +77,8 @@
 				   gr::io_signature::make(0, 0, 0)),
 	d_conditioners_count(sources_count),
 	d_fs_in(fs_in),
-	d_channels_count(channels_count)
+	d_channels_count(channels_count),
+        d_duration(duration)
     {
       d_conv_chunk = static_cast<unsigned int> (duration * fs_in);
       d_IDs = IDs;
@@ -87,12 +87,15 @@
       d_doppler_step = (1/duration)*DOPPLER_DEFINITION;
       d_resampling_doppler_dist =MAX_TIME_SHIFT/(GPS_L1_CA_CODE_RATE_HZ*duration) *GPS_L1_FREQ_HZ;
       d_resampling_step = static_cast<unsigned int> ((d_resampling_doppler_dist+eps)/d_doppler_step);
+      d_min_reliable_symbols = static_cast<unsigned int>
+	(GPS_CA_TELEMETRY_SYMBOLS_PER_BIT*GPS_CA_TELEMETRY_RATE_BITS_SECOND*d_duration);
            
-      std::vector<float> taps = gr::filter::firdes::low_pass(
+      std::vector<float> taps = gr::filter::firdes::low_pass_2(
 							     GAIN,
 							     fs_in*FILTER_SIZE,
 							     fs_in*END_PASS_BAND,
 							     fs_in*(START_STOP_BAND-END_PASS_BAND),
+							     ATTENUATION,
 							     WINDOW
 							     );
       
@@ -111,7 +114,7 @@
     {
     }
 
-    std::vector<unsigned int> reliable_channel;
+    std::vector<uint64_t> reliable_symbols;
 
     int passive_radar_cc::work(int noutput_items __attribute__ ((unused)),
         gr_vector_const_void_star &input_items,
@@ -124,7 +127,7 @@
 		  {
 		    for (unsigned ch =0;ch < d_channels_count;ch++)
 		      {
-			if (reliable_channel[ch] < GPS_CA_TELEMETRY_SYMBOLS_PER_BIT*GPS_CA_TELEMETRY_RATE_BITS_SECOND) continue;
+			if (reliable_symbols[ch] < d_min_reliable_symbols) continue;
 
 			gr_complex *in = (gr_complex*) input_items[d_IDs[ch]];
 					  
@@ -132,8 +135,7 @@
 
 			unsigned int start_res_pos = 0;
 	  
-			for (float  doppler = -d_doppler_range;doppler < d_doppler_range;doppler+=d_doppler_step,
-			     start_res_pos++) 
+			for (float  doppler = -d_doppler_range;doppler < d_doppler_range;doppler+=d_doppler_step) 
 			  {
 
 			    if (start_res_pos % d_resampling_step == 0)
@@ -150,6 +152,8 @@
 				    d_resampled_input.get()[i] =0;
 				  }
 			      }
+
+			    start_res_pos++;
 
 			    memcpy(d_freq_shift_input.get(), d_resampled_input.get(), sizeof(gr_complex)*d_conv_chunk);
 			    // here correct  d_freq_shift_doppler by doppler shift

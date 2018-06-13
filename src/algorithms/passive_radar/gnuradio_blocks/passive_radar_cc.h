@@ -65,11 +65,13 @@ make_passive_radar_cc(
       float d_doppler_range;
       float d_doppler_step;
       float d_resampling_doppler_dist;
+      float d_duration;
       gr::filter::kernel::pfb_arb_resampler_ccf *d_resamp;
       std::shared_ptr<gr_complex> d_resampled_input;
       std::shared_ptr<gr_complex> d_freq_shift_input; 
       unsigned int d_vector_length;
       unsigned int d_resampling_step;
+      unsigned int d_min_reliable_symbols;
 
      public:
       passive_radar_cc(
