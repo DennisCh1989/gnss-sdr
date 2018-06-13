@@ -64,7 +64,7 @@ const float MAX_DURATION = 2.5; // secs
 
 using google::LogMessage;
 
-extern std::vector<uint64_t> reliable_channel;
+extern std::vector<uint64_t> reliable_symbols;
 
 gps_l1_ca_dll_pll_tracking_cc_pr_sptr
 gps_l1_ca_dll_pll_make_tracking_cc_pr(
@@ -184,7 +184,7 @@ Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::Gps_L1_Ca_Dll_Pll_Tracking_cc_pr(
     set_min_output_buffer(1,max_conv_chunk);
 
     set_relative_rate(1.0 / static_cast<double>(d_vector_length));
-    reliable_channel.push_back(0);
+    reliable_symbols.push_back(0);
 }
 
 
@@ -283,8 +283,6 @@ Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::~Gps_L1_Ca_Dll_Pll_Tracking_cc_pr()
     multicorrelator_cpu.free();
 }
 
-
-
 int Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::general_work (int noutput_items __attribute__((unused)), gr_vector_int &ninput_items __attribute__((unused)),
         gr_vector_const_void_star &input_items, gr_vector_void_star &output_items)
 {
@@ -350,18 +348,18 @@ int Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::general_work (int noutput_items __attribut
 							   );
 
 	     volk_32f_x2_subtract_32f(
-				      (float*) input_items[0],
-				      (float*) input_items[0],
+				      (float*) in,
+				      (float*) in,
 				      (float*) output_items[1],
 				      d_current_prn_length_samples*sizeof(gr_complex)/sizeof(float)
 				     );
 
-	     reliable_channel[d_channel]++; 
-  
+	     reliable_symbols [d_channel]++;
+               
 	     if (symb_length >0)
 	       {
-		 produce(1,symb_length);
-		 d_sample_counter += symb_length;
+		  produce(1,symb_length);
+		  d_sample_counter += symb_length;
 	       }
 	     else
 	       {
@@ -442,7 +440,7 @@ int Gps_L1_Ca_Dll_Pll_Tracking_cc_pr::general_work (int noutput_items __attribut
                             d_carrier_lock_fail_counter = 0;
                             d_enable_tracking = false; // TODO: check if disabling tracking is consistent with the channel state machine
                             d_demod_phase =0;
-			    reliable_channel[d_channel]=0;
+			    reliable_symbols [d_channel]=0;
 			    unsigned int remand_samples_in_ker =  rec_kernel.clear_rec_ker( (gr_complex *)output_items[1]);
 			    produce(1, remand_samples_in_ker);
 			    d_sample_counter +=remand_samples_in_ker;
