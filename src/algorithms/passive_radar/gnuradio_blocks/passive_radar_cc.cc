@@ -39,9 +39,8 @@
     const float eps = std::numeric_limits<float>::epsilon();
     const double GAIN = 1.0;
     const double END_PASS_BAND = 0.44;
-    const double START_STOP_BAND = 0.49;  
-    const double TRANSITION_WIDTH = 0.025;
-    gr::filter::firdes::win_type window = gr::filter::firdes::WIN_HAMMING;
+    const double START_STOP_BAND = 0.49; 
+    gr::filter::firdes::win_type WINDOW = gr::filter::firdes::WIN_HAMMING;
     unsigned int FILTER_SIZE = 32;
 
     passive_radar_cc_sptr make_passive_radar_cc( 
@@ -94,7 +93,7 @@
 							     fs_in*FILTER_SIZE,
 							     fs_in*END_PASS_BAND,
 							     fs_in*(START_STOP_BAND-END_PASS_BAND),
-							     window
+							     WINDOW
 							     );
       
       d_resamp = new gr::filter::kernel::pfb_arb_resampler_ccf(1, taps, FILTER_SIZE);
