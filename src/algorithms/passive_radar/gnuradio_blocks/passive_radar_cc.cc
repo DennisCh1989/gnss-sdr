@@ -31,6 +31,10 @@
 #include <gnuradio/filter/firdes.h>
 #include <thread>
 #include <limits> 
+#include <algorithm>
+#include <fstream>
+#include <iostream>
+#include <sstream>
 
     const float DOPPLER_DEFINITION = 0.25;
     const float MAX_TIME_SHIFT     = 0.1;
@@ -113,6 +117,97 @@
     passive_radar_cc::~passive_radar_cc()
     {
     }
+
+
+    int passive_radar_cc::init_opencl_environment(std::string kernel_filename)
+	{
+	    	//get all platforms (drivers)
+ 	 	std::vector<cl::Platform> all_platforms;
+	 	cl::Platform::get(&all_platforms);
+
+	 	if(all_platforms.size()==0)
+	   	{
+ 	      	    std::cout << "No OpenCL platforms found. Check OpenCL installation!" << std::endl;
+	      	    return 1;
+ 	   	}
+
+  		d_cl_platform = all_platforms[0]; //get default platform
+  		std::cout << "Using platform: " << d_cl_platform.getInfo<CL_PLATFORM_NAME>()
+      	      		  << std::endl;
+
+    		//get default GPU device of the default platform
+    		std::vector<cl::Device> gpu_devices;
+    		d_cl_platform.getDevices(CL_DEVICE_TYPE_GPU, &gpu_devices);
+
+    		if(gpu_devices.size()==0)
+   	 	{
+        		std::cout << "No GPU devices found. Check OpenCL installation!" << std::endl;
+        		return 2;
+    		}
+
+    		d_cl_device = gpu_devices[0];
+
+    		std::vector<cl::Device> device;
+    		device.push_back(d_cl_device);
+    		std::cout << "Using device: " << d_cl_device.getInfo<CL_DEVICE_NAME>() << std::endl;
+
+    		cl::Context context(device);
+    		d_cl_context = context;
+
+    		// build the program from the source in the file
+    		std::ifstream kernel_file(kernel_filename, std::ifstream::in);
+    		std::string kernel_code(std::istreambuf_iterator<char>(kernel_file),
+        		(std::istreambuf_iterator<char>()));
+    		kernel_file.close();
+
+    		// std::cout << "Kernel code: \n" << kernel_code << std::endl;
+
+    		cl::Program::Sources sources;
+
+    		sources.push_back({kernel_code.c_str(),kernel_code.length()});
+
+    		cl::Program program(context,sources);
+    		if(program.build(device)!=CL_SUCCESS)
+    		 {
+        		std::cout << " Error building: "
+        	        	  << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device[0])
+        	        	  << std::endl;
+        		return 3;
+    		 }
+    		d_cl_program = program;
+
+    		// create buffers on the device
+    		d_cl_buffer_in = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(gr_complex)*d_fft_size);
+    		d_cl_buffer_fft_codes = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(gr_complex)*d_fft_size_pow2);
+    		d_cl_buffer_1 = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(gr_complex)*d_fft_size_pow2);
+    		d_cl_buffer_2 = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(gr_complex)*d_fft_size_pow2);
+    		d_cl_buffer_magnitude = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(float)*d_fft_size);
+
+    		//create queue to which we will push commands for the device.
+    		d_cl_queue = new cl::CommandQueue(d_cl_context,d_cl_device);
+
+    		//create FFT plan
+    		cl_int err;
+    		clFFT_Dim3 dim = {d_fft_size_pow2, 1, 1};
+
+    		d_cl_fft_plan = clFFT_CreatePlan(d_cl_context(), dim, clFFT_1D,
+        		                             clFFT_InterleavedComplexFormat, &err);
+
+    		if (err != 0)
+    		 {	
+        		delete d_cl_queue;
+        		delete d_cl_buffer_in;
+        		delete d_cl_buffer_1;
+        		delete d_cl_buffer_2;
+        		delete d_cl_buffer_magnitude;
+        		delete d_cl_buffer_fft_codes;
+
+        		std::cout << "Error creating OpenCL FFT plan." << std::endl;
+        		return 4;
+    		 }
+
+    		return 0;
+	}
 
     std::vector<uint64_t> reliable_symbols;
 

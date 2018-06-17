@@ -25,6 +25,14 @@
 #include <gnuradio/filter/pfb_arb_resampler_ccf.h>
 #include <gnuradio/filter/pfb_arb_resampler.h>
 #include <vector>
+#include <fstream>
+#include <string>
+
+#ifdef __APPLE__
+   #include "cl.hpp"
+#else
+    #include <CL/cl.hpp>
+#endif
 
 class passive_radar_cc;
 
@@ -72,6 +80,24 @@ make_passive_radar_cc(
       unsigned int d_vector_length;
       unsigned int d_resampling_step;
       unsigned int d_min_reliable_symbols;
+
+      int init_opencl_environment(std::string kernel_filename);
+
+      cl::Platform d_cl_platform;
+      cl::Device d_cl_device;
+      cl::Context d_cl_context;
+      cl::Program d_cl_program;
+      cl::Buffer* d_cl_buffer_in;
+      cl::Buffer* d_cl_buffer_fft_codes;
+      cl::Buffer* d_cl_buffer_1;
+      cl::Buffer* d_cl_buffer_2;
+      cl::Buffer* d_cl_buffer_magnitude;
+      cl::Buffer** d_cl_buffer_grid_doppler_wipeoffs;
+      cl::CommandQueue* d_cl_queue;
+      clFFT_Plan d_cl_fft_plan;
+      cl_int d_cl_fft_batch_size;
+
+      int d_opencl;
 
      public:
       passive_radar_cc(
