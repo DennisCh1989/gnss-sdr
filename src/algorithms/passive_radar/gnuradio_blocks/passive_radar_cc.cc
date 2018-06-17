@@ -177,6 +177,9 @@
     		d_cl_program = program;
 
     		// create buffers on the device
+
+                const int d_fft_size =1;
+                const int d_fft_size_pow2 = 1;
     		d_cl_buffer_in = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(gr_complex)*d_fft_size);
     		d_cl_buffer_fft_codes = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(gr_complex)*d_fft_size_pow2);
     		d_cl_buffer_1 = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(gr_complex)*d_fft_size_pow2);
