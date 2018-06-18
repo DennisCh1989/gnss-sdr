@@ -63,7 +63,7 @@
 #ifdef __APPLE__
    #include "cl.hpp"
 #else
-    #include <CL/cl.hpp>
+    #include <cl.hpp>
 #endif
 
 class pcps_opencl_acquisition_cc;
