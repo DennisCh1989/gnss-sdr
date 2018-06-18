@@ -27,11 +27,12 @@
 #include <vector>
 #include <fstream>
 #include <string>
+#include "fft_internal.h"
 
 #ifdef __APPLE__
    #include "cl.hpp"
 #else
-    #include <CL/cl.hpp>
+    #include <cl.hpp>
 #endif
 
 class passive_radar_cc;
