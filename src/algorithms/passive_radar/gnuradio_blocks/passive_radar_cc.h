@@ -97,8 +97,14 @@ make_passive_radar_cc(
       cl::CommandQueue* d_cl_queue;
       clFFT_Plan d_cl_fft_plan;
       cl_int d_cl_fft_batch_size;
+      cl::Buffer* d_cl_buffer_doppler_step;
 
       int d_opencl;
+
+      unsigned int  d_fft_size_pow2;      
+      gr_complex * d_doppler_step_vector;
+      gr_complex * d_doppler_minus_range;
+      gr_complex * d_zero_vector;
 
      public:
       passive_radar_cc(

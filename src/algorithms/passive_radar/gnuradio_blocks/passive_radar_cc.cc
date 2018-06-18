@@ -28,10 +28,11 @@
 #include <pmt/pmt.h>
 #include <gnuradio/tags.h>
 #include <volk/volk.h>
+#include <volk_gnsssdr/volk_gnsssdr.h>
 #include <gnuradio/filter/firdes.h>
 #include <thread>
 #include <limits> 
-#include <algorithm>
+#include <algorithm> 
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -108,6 +109,26 @@
       d_resampled_input = std::shared_ptr<gr_complex>(new gr_complex[static_cast<unsigned int>(d_conv_chunk*(1+max_chip_rate_err*2))]);
       d_freq_shift_input = std::shared_ptr<gr_complex>(new gr_complex[static_cast<unsigned int>(d_conv_chunk*(1+max_chip_rate_err*2))]); 
       unsigned int d_vector_length = static_cast<unsigned int> (fs_in / (GPS_L1_CA_CODE_RATE_HZ / GPS_L1_CA_CODE_LENGTH_CHIPS))*GPS_CA_TELEMETRY_SYMBOLS_PER_BIT*2;
+
+      d_fft_size_pow2 = pow(2, ceil(log2(2 * d_conv_chunk)));      
+      d_doppler_step_vector = static_cast<gr_complex*>(volk_gnsssdr_malloc(d_fft_size_pow2 * sizeof(gr_complex), volk_gnsssdr_get_alignment()));
+      d_doppler_minus_range = static_cast<gr_complex*>(volk_gnsssdr_malloc(d_fft_size_pow2 * sizeof(gr_complex), volk_gnsssdr_get_alignment()));
+      d_zero_vector = static_cast<gr_complex*>(volk_gnsssdr_malloc((d_fft_size_pow2 - d_conv_chunk) * sizeof(gr_complex), volk_gnsssdr_get_alignment()));
+
+      float _phase[1] = {0};
+      
+      float phase_rad_minus_range  = static_cast<float>(GPS_TWO_PI) * (d_doppler_range) / static_cast<float>(d_fs_in); 
+      volk_gnsssdr_s32f_sincos_32fc(d_doppler_minus_range, -phase_rad_minus_range, _phase, d_conv_chunk);
+
+      float phase_step_rad  = static_cast<float>(GPS_TWO_PI) * (d_doppler_step) / static_cast<float>(d_fs_in);
+      volk_gnsssdr_s32f_sincos_32fc(d_doppler_step_vector, - phase_step_rad, _phase, d_conv_chunk);
+
+
+      // put doppler step vector into OpenCL buffer
+      d_cl_queue->enqueueWriteBuffer(*(d_cl_buffer_doppler_step),
+				     CL_TRUE, 0, sizeof(gr_complex)*d_conv_chunk,
+				     d_doppler_step_vector);
+      
       set_history(d_vector_length);
     }
 
@@ -185,6 +206,7 @@
     		d_cl_buffer_1 = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(gr_complex)*d_fft_size_pow2);
     		d_cl_buffer_2 = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(gr_complex)*d_fft_size_pow2);
     		d_cl_buffer_magnitude = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(float)*d_fft_size);
+		d_cl_buffer_doppler_step = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(float)*d_conv_chunk);
 
     		//create queue to which we will push commands for the device.
     		d_cl_queue = new cl::CommandQueue(d_cl_context,d_cl_device);
@@ -219,7 +241,7 @@
         gr_vector_void_star &output_items __attribute__ ((unused)))
     {
 
-      if (d_run_detector) return d_conv_chunk;
+      if (d_run_detector or d_opencl) return d_conv_chunk;
       d_run_detector = true;
       std::thread([this,input_items]
 		  {
@@ -227,16 +249,48 @@
 		      {
 			if (reliable_symbols[ch] < d_min_reliable_symbols) continue;
 
-			gr_complex *in = (gr_complex*) input_items[d_IDs[ch]];
+			gr_complex *in  = (gr_complex*) input_items[d_IDs[ch]];
+			gr_complex *ref = (gr_complex*) input_items[ch + d_conditioners_count];
 					  
 			// here perform direct FFT for input_items[ch + d_conditioners_count]
 
-			unsigned int start_res_pos = 0;
+			d_cl_queue->enqueueWriteBuffer(*d_cl_buffer_2, CL_TRUE, 0,
+						       sizeof(gr_complex)*d_conv_chunk, ref);
+
+			d_cl_queue->enqueueWriteBuffer(*d_cl_buffer_2, CL_TRUE, sizeof(gr_complex)*d_conv_chunk,
+						       sizeof(gr_complex)*(d_fft_size_pow2 - d_conv_chunk),
+						       d_zero_vector);
+
+			clFFT_ExecuteInterleaved((*d_cl_queue)(), d_cl_fft_plan, d_cl_fft_batch_size,
+						 clFFT_Forward, (*d_cl_buffer_2)(), (*d_cl_buffer_2)(),
+						 0, NULL, NULL);
+
+			//Conjugate the local code
+			cl::Kernel kernel = cl::Kernel(d_cl_program, "conj_vector");
+			kernel.setArg(0, *d_cl_buffer_2);         //input
+			kernel.setArg(1, *d_cl_buffer_fft_codes); //output
+			d_cl_queue->enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(d_fft_size_pow2), cl::NullRange);
+
+			// initialize input vector
+			d_cl_queue->enqueueWriteBuffer(*(d_cl_buffer_in),
+						       CL_TRUE, 0, sizeof(gr_complex)*d_conv_chunk,
+						       d_doppler_minus_range);
+
+			float doppler = - d_doppler_range;
 	  
-			for (float  doppler = -d_doppler_range;doppler < d_doppler_range;doppler+=d_doppler_step) 
+			for (unsigned int  step = 0;step< d_doppler_range;step++) 
 			  {
 
-			    if (start_res_pos % d_resampling_step == 0)
+			    // here correct  d_freq_shift_doppler by doppler shift
+
+			    kernel = cl::Kernel(d_cl_program, "mult_vectors");
+			    kernel.setArg(0, *d_cl_buffer_in); //input 1
+			    kernel.setArg(1, *d_cl_buffer_doppler_step); //input 2
+			    kernel.setArg(2, *d_cl_buffer_1); //output
+			    d_cl_queue->enqueueNDRangeKernel(kernel,cl::NullRange, cl::NDRange(d_conv_chunk),
+							     cl::NullRange);
+
+			    if (step % d_resampling_step == 0)
 			      {
 				
 				d_resamp -> set_phase(0);
@@ -249,16 +303,22 @@
 				  {
 				    d_resampled_input.get()[i] =0;
 				  }
+
+				// here correct  d_freq_shift_doppler by doppler shift
+
+				d_cl_queue->enqueueWriteBuffer(*(d_cl_buffer_in),
+							       CL_TRUE, 0, sizeof(gr_complex)*d_conv_chunk,
+							       d_doppler_minus_range);
 			      }
 
-			    start_res_pos++;
-
 			    memcpy(d_freq_shift_input.get(), d_resampled_input.get(), sizeof(gr_complex)*d_conv_chunk);
-			    // here correct  d_freq_shift_doppler by doppler shift
+			    			    
 			    // here perform  direct FFT for d_freq_shift_doppler
 			    // here perform  element-wise production d_freq_shift_doppler with FFT(input_items[ch])
 			    // here perform  Inverse FFT
 			    // here get magnitudes
+
+			    doppler+=d_doppler_step;
 			  }
 		      }
         
