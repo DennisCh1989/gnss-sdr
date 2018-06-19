@@ -207,6 +207,7 @@
     		d_cl_buffer_2 = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(gr_complex)*d_fft_size_pow2);
     		d_cl_buffer_magnitude = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(float)*d_fft_size);
 		d_cl_buffer_doppler_step = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(float)*d_conv_chunk);
+		d_cl_buffer_doppler      = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(float)*d_conv_chunk);  
 
     		//create queue to which we will push commands for the device.
     		d_cl_queue = new cl::CommandQueue(d_cl_context,d_cl_device);
@@ -272,7 +273,7 @@
 			d_cl_queue->enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(d_fft_size_pow2), cl::NullRange);
 
 			// initialize input vector
-			d_cl_queue->enqueueWriteBuffer(*(d_cl_buffer_in),
+			d_cl_queue->enqueueWriteBuffer(*(d_cl_buffer_doppler),
 						       CL_TRUE, 0, sizeof(gr_complex)*d_conv_chunk,
 						       d_doppler_minus_range);
 
@@ -281,17 +282,9 @@
 			for (unsigned int  step = 0;step< d_doppler_range;step++) 
 			  {
 
-			    // here correct  d_freq_shift_doppler by doppler shift
-
-			    kernel = cl::Kernel(d_cl_program, "mult_vectors");
-			    kernel.setArg(0, *d_cl_buffer_in); //input 1
-			    kernel.setArg(1, *d_cl_buffer_doppler_step); //input 2
-			    kernel.setArg(2, *d_cl_buffer_1); //output
-			    d_cl_queue->enqueueNDRangeKernel(kernel,cl::NullRange, cl::NDRange(d_conv_chunk),
-							     cl::NullRange);
-
 			    if (step % d_resampling_step == 0)
 			      {
+				// here put volk df correct
 				
 				d_resamp -> set_phase(0);
 				d_resamp -> set_rate(static_cast<float>(FILTER_SIZE)*(1 - doppler/GPS_L1_FREQ_HZ));
@@ -309,6 +302,18 @@
 				d_cl_queue->enqueueWriteBuffer(*(d_cl_buffer_in),
 							       CL_TRUE, 0, sizeof(gr_complex)*d_conv_chunk,
 							       d_doppler_minus_range);
+			      }
+			    else
+			      {
+
+				// here correct  d_freq_shift_doppler by doppler shift
+
+				kernel = cl::Kernel(d_cl_program, "mult_vectors");
+				kernel.setArg(0, *d_cl_buffer_in); //input 1
+				kernel.setArg(1, *d_cl_buffer_doppler); //input 2
+				kernel.setArg(2, *d_cl_buffer_1); //output
+				d_cl_queue->enqueueNDRangeKernel(kernel,cl::NullRange, cl::NDRange(d_conv_chunk),
+								 cl::NullRange);
 			      }
 
 			    memcpy(d_freq_shift_input.get(), d_resampled_input.get(), sizeof(gr_complex)*d_conv_chunk);
