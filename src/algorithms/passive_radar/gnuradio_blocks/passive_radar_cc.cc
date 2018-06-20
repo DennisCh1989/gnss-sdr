@@ -285,7 +285,7 @@
 			kernel.setArg(1, *d_cl_buffer_fft_ref); //output
 			d_cl_queue->enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(d_fft_size_pow2), cl::NullRange);
 	  
-			for (unsigned int  step = 0;step< d_doppler_range;step++) 
+			for (unsigned int  step = 0;;step++) 
 			  {
 
 			    if (step % d_resampling_step == 0)
@@ -294,7 +294,8 @@
 				gr_complex _phase[1];
 				_phase[0] = gr_complex(0.0,0.0);
 				
-                                float doppler = static_cast<float>(step)*d_doppler_step - d_doppler_range; 
+                                float doppler = static_cast<float>(step)*d_doppler_step - d_doppler_range;
+				if (doppler > d_doppler_range) break;
 				float phase_inc_f = static_cast<float>(GPS_TWO_PI) * doppler / static_cast<float>(d_fs_in);;
 				gr_complex phase_inc = std::exp(gr_complex(0,-phase_inc_f));
 				volk_32fc_s32fc_x2_rotator_32fc(in,in,phase_inc,_phase,d_conv_chunk);
