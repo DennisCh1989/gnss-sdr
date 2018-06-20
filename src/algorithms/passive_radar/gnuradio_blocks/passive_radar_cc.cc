@@ -253,7 +253,9 @@
 	}
 
       if (d_min_channels > ch_cnt) return d_conv_chunk;
-     
+
+      d_run_detector = true;
+      
       std::thread([this]
 		  {
 
