@@ -128,6 +128,13 @@
       d_cl_queue->enqueueWriteBuffer(*(d_cl_buffer_doppler_step),
 				     CL_TRUE, 0, sizeof(gr_complex)*d_conv_chunk,
 				     d_doppler_step_vector);
+
+      for (unsigned int i =0;i < d_channels_count+d_conditioners_count;i++)
+	{
+	  d_inputs.push_back(new gr_complex[d_conv_chunk]);
+	}
+
+      d_min_channels = 1;
       
       set_history(d_vector_length);
     }
@@ -199,15 +206,10 @@
 
     		// create buffers on the device
 
-                const int d_fft_size =1;
-                const int d_fft_size_pow2 = 1;
-    		d_cl_buffer_in = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(gr_complex)*d_fft_size);
-    		d_cl_buffer_fft_codes = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(gr_complex)*d_fft_size_pow2);
-    		d_cl_buffer_1 = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(gr_complex)*d_fft_size_pow2);
-    		d_cl_buffer_2 = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(gr_complex)*d_fft_size_pow2);
-    		d_cl_buffer_magnitude = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(float)*d_fft_size);
+    		d_cl_buffer_in = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(gr_complex)*d_conv_chunk);
+    	       	d_cl_buffer_magnitude = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(float)*d_conv_chunk);
 		d_cl_buffer_doppler_step = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(float)*d_conv_chunk);
-		d_cl_buffer_doppler      = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(float)*d_conv_chunk);  
+		d_cl_buffer_fft_ref      = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(float)*d_conv_chunk);
 
     		//create queue to which we will push commands for the device.
     		d_cl_queue = new cl::CommandQueue(d_cl_context,d_cl_device);
@@ -223,11 +225,10 @@
     		 {	
         		delete d_cl_queue;
         		delete d_cl_buffer_in;
-        		delete d_cl_buffer_1;
-        		delete d_cl_buffer_2;
-        		delete d_cl_buffer_magnitude;
-        		delete d_cl_buffer_fft_codes;
-
+        	        delete d_cl_buffer_magnitude;
+		        delete d_cl_buffer_doppler_step;
+			delete d_cl_buffer_fft_ref;
+        	      
         		std::cout << "Error creating OpenCL FFT plan." << std::endl;
         		return 4;
     		 }
@@ -243,48 +244,60 @@
     {
 
       if (d_run_detector or d_opencl) return d_conv_chunk;
-      d_run_detector = true;
-      std::thread([this,input_items]
+            
+      unsigned int ch_cnt= 0;
+      for (unsigned int i =0;i < d_channels_count+d_conditioners_count;i++)
+	{
+	  if (reliable_symbols[i] < d_min_reliable_symbols and i > d_conditioners_count) ch_cnt++;
+	  memcpy(d_inputs[i],(gr_complex*)input_items[i],d_conv_chunk*sizeof(gr_complex));
+	}
+
+      if (d_min_channels > ch_cnt) return d_conv_chunk;
+
+      
+      
+      std::thread([this]
 		  {
+
 		    for (unsigned ch =0;ch < d_channels_count;ch++)
 		      {
 			if (reliable_symbols[ch] < d_min_reliable_symbols) continue;
 
-			gr_complex *in  = (gr_complex*) input_items[d_IDs[ch]];
-			gr_complex *ref = (gr_complex*) input_items[ch + d_conditioners_count];
+			gr_complex *in  = d_inputs[d_IDs[ch]];
+			gr_complex *ref = d_inputs[ch + d_conditioners_count];
 					  
 			// here perform direct FFT for input_items[ch + d_conditioners_count]
 
-			d_cl_queue->enqueueWriteBuffer(*d_cl_buffer_2, CL_TRUE, 0,
+			d_cl_queue->enqueueWriteBuffer(*d_cl_buffer_fft_ref, CL_TRUE, 0,
 						       sizeof(gr_complex)*d_conv_chunk, ref);
 
-			d_cl_queue->enqueueWriteBuffer(*d_cl_buffer_2, CL_TRUE, sizeof(gr_complex)*d_conv_chunk,
+			d_cl_queue->enqueueWriteBuffer(*d_cl_buffer_fft_ref, CL_TRUE, sizeof(gr_complex)*d_conv_chunk,
 						       sizeof(gr_complex)*(d_fft_size_pow2 - d_conv_chunk),
 						       d_zero_vector);
 
 			clFFT_ExecuteInterleaved((*d_cl_queue)(), d_cl_fft_plan, d_cl_fft_batch_size,
-						 clFFT_Forward, (*d_cl_buffer_2)(), (*d_cl_buffer_2)(),
+						 clFFT_Forward, (*d_cl_buffer_fft_ref)(), (*d_cl_buffer_fft_ref)(),
 						 0, NULL, NULL);
 
 			//Conjugate the local code
 			cl::Kernel kernel = cl::Kernel(d_cl_program, "conj_vector");
-			kernel.setArg(0, *d_cl_buffer_2);         //input
-			kernel.setArg(1, *d_cl_buffer_fft_codes); //output
+			kernel.setArg(0, *d_cl_buffer_fft_ref);         //input
+			kernel.setArg(1, *d_cl_buffer_fft_ref); //output
 			d_cl_queue->enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(d_fft_size_pow2), cl::NullRange);
-
-			// initialize input vector
-			d_cl_queue->enqueueWriteBuffer(*(d_cl_buffer_doppler),
-						       CL_TRUE, 0, sizeof(gr_complex)*d_conv_chunk,
-						       d_doppler_minus_range);
-
-			float doppler = - d_doppler_range;
 	  
 			for (unsigned int  step = 0;step< d_doppler_range;step++) 
 			  {
 
 			    if (step % d_resampling_step == 0)
 			      {
-				// here put volk df correct
+				
+				gr_complex _phase[1];
+				_phase[0] = gr_complex(0.0,0.0);
+				
+                                float doppler = static_cast<float>(step)*d_doppler_step - d_doppler_range; 
+				float phase_inc_f = static_cast<float>(GPS_TWO_PI) * doppler / static_cast<float>(d_fs_in);;
+				gr_complex phase_inc = std::exp(gr_complex(0,-phase_inc_f));
+				volk_32fc_s32fc_x2_rotator_32fc(in,in,phase_inc,_phase,d_conv_chunk);
 				
 				d_resamp -> set_phase(0);
 				d_resamp -> set_rate(static_cast<float>(FILTER_SIZE)*(1 - doppler/GPS_L1_FREQ_HZ));
@@ -301,29 +314,46 @@
 
 				d_cl_queue->enqueueWriteBuffer(*(d_cl_buffer_in),
 							       CL_TRUE, 0, sizeof(gr_complex)*d_conv_chunk,
-							       d_doppler_minus_range);
+							       d_resampled_input.get());
 			      }
 			    else
 			      {
-
 				// here correct  d_freq_shift_doppler by doppler shift
 
 				kernel = cl::Kernel(d_cl_program, "mult_vectors");
 				kernel.setArg(0, *d_cl_buffer_in); //input 1
-				kernel.setArg(1, *d_cl_buffer_doppler); //input 2
-				kernel.setArg(2, *d_cl_buffer_1); //output
+				kernel.setArg(1, *d_cl_buffer_doppler_step); //input 2
+				kernel.setArg(2, *d_cl_buffer_in); //output
 				d_cl_queue->enqueueNDRangeKernel(kernel,cl::NullRange, cl::NDRange(d_conv_chunk),
 								 cl::NullRange);
 			      }
+			    
+                            // here perform  direct FFT 
+			    clFFT_ExecuteInterleaved((*d_cl_queue)(), d_cl_fft_plan, d_cl_fft_batch_size,
+						 clFFT_Forward, (*d_cl_buffer_in)(), (*d_cl_buffer_ffted_in)(),
+						 0, NULL, NULL);
+			    
+                            // here perform  element-wise production
+			    kernel = cl::Kernel(d_cl_program, "mult_vectors");
+			    kernel.setArg(0, *d_cl_buffer_ffted_in); //input 1
+			    kernel.setArg(1, *d_cl_buffer_fft_ref); //input 2
+			    kernel.setArg(2, *d_cl_buffer_ffted_in); //output
+			    d_cl_queue->enqueueNDRangeKernel(kernel,cl::NullRange, cl::NDRange(d_conv_chunk),
+							     cl::NullRange);
 
-			    memcpy(d_freq_shift_input.get(), d_resampled_input.get(), sizeof(gr_complex)*d_conv_chunk);
-			    			    
-			    // here perform  direct FFT for d_freq_shift_doppler
-			    // here perform  element-wise production d_freq_shift_doppler with FFT(input_items[ch])
 			    // here perform  Inverse FFT
-			    // here get magnitudes
+			    clFFT_ExecuteInterleaved((*d_cl_queue)(), d_cl_fft_plan, d_cl_fft_batch_size,
+						 clFFT_Inverse, (*d_cl_buffer_ffted_in)(), (*d_cl_buffer_ffted_in)(),
+						 0, NULL, NULL);
+			    
+			    // Compute magnitude
+			    kernel = cl::Kernel(d_cl_program, "magnitude_squared");
+			    kernel.setArg(0, *d_cl_buffer_ffted_in);         //input 1
+			    kernel.setArg(1, *d_cl_buffer_magnitude); //output
+			    d_cl_queue->enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(d_conv_chunk),
+							     cl::NullRange);
 
-			    doppler+=d_doppler_step;
+			    //here put magnitudes to screen
 			  }
 		      }
         

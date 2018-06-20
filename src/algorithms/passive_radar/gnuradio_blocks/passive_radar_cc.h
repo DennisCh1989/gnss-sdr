@@ -89,16 +89,15 @@ make_passive_radar_cc(
       cl::Context d_cl_context;
       cl::Program d_cl_program;
       cl::Buffer* d_cl_buffer_in;
-      cl::Buffer* d_cl_buffer_fft_codes;
-      cl::Buffer* d_cl_buffer_1;
-      cl::Buffer* d_cl_buffer_2;
+      
       cl::Buffer* d_cl_buffer_magnitude;
-      cl::Buffer** d_cl_buffer_grid_doppler_wipeoffs;
       cl::CommandQueue* d_cl_queue;
       clFFT_Plan d_cl_fft_plan;
       cl_int d_cl_fft_batch_size;
       cl::Buffer*  d_cl_buffer_doppler_step;
-      cl::Buffer*  d_cl_buffer_doppler;
+      
+      cl::Buffer* d_cl_buffer_fft_ref;
+      cl::Buffer* d_cl_buffer_ffted_in;
 
       int d_opencl;
 
@@ -107,6 +106,9 @@ make_passive_radar_cc(
       gr_complex * d_doppler_minus_range;
       gr_complex * d_zero_vector;
 
+      std::vector<gr_complex*> d_inputs;
+      unsigned int d_min_channels;
+ 
      public:
       passive_radar_cc(
                         float fs_in,
