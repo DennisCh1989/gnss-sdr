@@ -86,11 +86,13 @@ passive_radar_cc::passive_radar_cc(
     d_channels_count(channels_count),
     d_duration(duration)
 {
-  d_conv_chunk = static_cast<unsigned int> (duration * fs_in);
+
+  d_conv_chunk = pow(2, ceil(log2(static_cast<unsigned int> (duration * fs_in))));  
+  
   d_IDs = IDs;
   d_run_detector = false;
-  d_doppler_step = (1/duration)*DOPPLER_DEFINITION;
-  d_resampling_doppler_dist =MAX_TIME_SHIFT/(GPS_L1_CA_CODE_RATE_HZ*duration) *GPS_L1_FREQ_HZ/d_doppler_step;
+  float doppler_step = (1/duration)*DOPPLER_DEFINITION;
+  d_resampling_step = static_cast<unsigned int>(MAX_TIME_SHIFT/(GPS_L1_CA_CODE_RATE_HZ*duration) *GPS_L1_FREQ_HZ/doppler_step);
             
   std::vector<float> taps = gr::filter::firdes::low_pass_2(
 							   GAIN,
@@ -102,42 +104,33 @@ passive_radar_cc::passive_radar_cc(
 							   );
       
   d_resamp = new gr::filter::kernel::pfb_arb_resampler_ccf(1, taps, FILTER_SIZE);
-  d_resampled_input = std::shared_ptr<gr_complex>(new gr_complex[static_cast<unsigned int>(d_conv_chunk*2)]);
-  d_freq_shift_input = std::shared_ptr<gr_complex>(new gr_complex[static_cast<unsigned int>(d_conv_chunk)]); 
+  d_resampled_input  = new gr_complex[static_cast<unsigned int>(d_conv_chunk*2)];
+  d_freq_shift_input = new gr_complex[static_cast<unsigned int>(d_conv_chunk)]; 
+      
+  gr_complex* doppler_step_vector = static_cast<gr_complex*>(volk_gnsssdr_malloc(d_conv_chunk * sizeof(gr_complex), volk_gnsssdr_get_alignment()));
   
-  d_fft_size_pow2 = pow(2, ceil(log2(d_conv_chunk)));      
-  d_doppler_step_vector = static_cast<gr_complex*>(volk_gnsssdr_malloc(d_fft_size_pow2 * sizeof(gr_complex), volk_gnsssdr_get_alignment()));
-  d_zero_vector = static_cast<gr_complex*>(volk_gnsssdr_malloc((d_fft_size_pow2 - d_conv_chunk) * sizeof(gr_complex), volk_gnsssdr_get_alignment()));
-
   float _phase[1] = {0};
   
-  float phase_step_rad  = static_cast<float>(GPS_TWO_PI) * (d_doppler_step) / static_cast<float>(d_fs_in);
-  volk_gnsssdr_s32f_sincos_32fc(d_doppler_step_vector, - phase_step_rad, _phase, d_conv_chunk);
+  float phase_step_rad  = static_cast<float>(GPS_TWO_PI) * doppler_step / static_cast<float>(d_fs_in);
+  volk_gnsssdr_s32f_sincos_32fc(doppler_step_vector, - phase_step_rad, _phase, d_conv_chunk);
 
+  d_opencl = init_opencl_environment("math_kernel.cl");
 
   // put doppler step vector into OpenCL buffer
-  d_cl_queue->enqueueWriteBuffer(*(d_cl_buffer_doppler_step),
+  if (d_opencl == 0)
+   {
+     d_cl_queue->enqueueWriteBuffer(*(d_cl_buffer_doppler_step),
 				 CL_TRUE, 0, sizeof(gr_complex)*d_conv_chunk,
-				 d_doppler_step_vector);
-  
-  delete [] d_doppler_step_vector;
-
-  d_cl_queue->enqueueWriteBuffer(*d_cl_buffer_fft_ref, CL_TRUE, sizeof(gr_complex)*d_conv_chunk,
-						   sizeof(gr_complex)*(d_fft_size_pow2 - d_conv_chunk),
-						   d_zero_vector);
-
-  delete [] d_zero_vector;
+				 doppler_step_vector);
+   }
+    
+  delete [] doppler_step_vector;
 
   for (unsigned int i =0;i < d_channels_count+d_conditioners_count;i++)
     {
       d_inputs.push_back(new gr_complex[d_conv_chunk]);
     }
-
-  d_min_channels = 1;
-
-  d_opencl = init_opencl_environment("");
       
-  set_history(d_vector_length);
 }
 
 /*
@@ -148,12 +141,13 @@ passive_radar_cc::~passive_radar_cc()
 
   for (unsigned int i =0;i < d_inputs.size();i++)
     {
-      delete d_inputs[i];
+      delete [] d_inputs[i];
     }
 
   if (d_opencl == 0)
     {
       delete d_cl_buffer_in;
+      delete d_cl_buffer_ffted_in;
       delete d_cl_buffer_magnitude;
       delete d_cl_buffer_doppler_step;
       delete d_cl_buffer_fft_ref; 
@@ -161,8 +155,9 @@ passive_radar_cc::~passive_radar_cc()
 
   clFFT_DestroyPlan(d_cl_fft_plan);
   
-  volk_free(d_zero_vector);
-  volk_free(d_doppler_step_vector);
+  delete [] d_freq_shift_input;
+  delete [] d_resampled_input;
+  delete d_resamp;
 }
 
 
@@ -225,17 +220,18 @@ int passive_radar_cc::init_opencl_environment(std::string kernel_filename)
 
   // create buffers on the device
 
-  d_cl_buffer_in = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(gr_complex)*d_fft_size_pow2);
-  d_cl_buffer_magnitude = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(float)*d_fft_size_pow2);
-  d_cl_buffer_doppler_step = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(float)*d_fft_size_pow2);
-  d_cl_buffer_fft_ref      = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(float)*d_fft_size_pow2);
+  d_cl_buffer_in           = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(gr_complex)*d_conv_chunk);
+  d_cl_buffer_ffted_in     = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(gr_complex)*d_conv_chunk);
+  d_cl_buffer_magnitude    = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(float)*d_conv_chunk);
+  d_cl_buffer_doppler_step = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(float)*d_conv_chunk);
+  d_cl_buffer_fft_ref      = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(float)*d_conv_chunk);
 
   //create queue to which we will push commands for the device.
   d_cl_queue = new cl::CommandQueue(d_cl_context,d_cl_device);
 
   //create FFT plan
   cl_int err;
-  clFFT_Dim3 dim = {d_fft_size_pow2, 1, 1};
+  clFFT_Dim3 dim = {d_conv_chunk, 1, 1};
 
   d_cl_fft_plan = clFFT_CreatePlan(d_cl_context(), dim, clFFT_1D,
 				   clFFT_InterleavedComplexFormat, &err);
@@ -247,6 +243,7 @@ int passive_radar_cc::init_opencl_environment(std::string kernel_filename)
       delete d_cl_buffer_magnitude;
       delete d_cl_buffer_doppler_step;
       delete d_cl_buffer_fft_ref;
+      delete d_cl_buffer_ffted_in;
         	      
       std::cout << "Error creating OpenCL FFT plan." << std::endl;
       return 4;
@@ -280,6 +277,13 @@ int passive_radar_cc::work(int noutput_items __attribute__ ((unused)),
 
 		    gr_complex *in  = d_inputs[d_IDs[ch]];
 		    gr_complex *ref = d_inputs[ch + d_conditioners_count];
+
+                    for (unsigned int i =0;i <= d_conv_chunk/2;i++)
+                      {
+                         gr_complex buf = ref[i];
+                         ref[i] = ref [d_conv_chunk -1 - i];
+                         ref [d_conv_chunk -1 - i] = buf;
+		      }
 					  
 		    // here perform direct FFT for input_items[ch + d_conditioners_count]
 
@@ -292,9 +296,9 @@ int passive_radar_cc::work(int noutput_items __attribute__ ((unused)),
 
 		    //Conjugate the local code
 		    cl::Kernel kernel = cl::Kernel(d_cl_program, "conj_vector");
-		    kernel.setArg(0, *d_cl_buffer_fft_ref);         //input
+		    kernel.setArg(0, *d_cl_buffer_fft_ref); //input
 		    kernel.setArg(1, *d_cl_buffer_fft_ref); //output
-		    d_cl_queue->enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(d_fft_size_pow2), cl::NullRange);
+		    d_cl_queue->enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(d_conv_chunk), cl::NullRange);
 	  
 		    for (unsigned int  step = 0;;step++) 
 		      {
@@ -307,30 +311,30 @@ int passive_radar_cc::work(int noutput_items __attribute__ ((unused)),
 				
 			    float doppler = static_cast<float>(step)*d_doppler_step - DOPPLER_RANGE;
 			    if (doppler > DOPPLER_RANGE) break;
-			    float phase_inc_f = static_cast<float>(GPS_TWO_PI) * doppler / static_cast<float>(d_fs_in);;
+			    float phase_inc_f = static_cast<float>(GPS_TWO_PI) * doppler / static_cast<float>(d_fs_in);
 			    gr_complex phase_inc = std::exp(gr_complex(0,-phase_inc_f));
-			    volk_32fc_s32fc_x2_rotator_32fc(d_freq_shift_input.get(),in,phase_inc,_phase,d_conv_chunk);
+
+                            // here correct  by doppler shift
+			    volk_32fc_s32fc_x2_rotator_32fc(d_freq_shift_input,in,phase_inc,_phase,d_conv_chunk);
 				
 			    d_resamp -> set_phase(0);
 			    d_resamp -> set_rate(static_cast<float>(FILTER_SIZE)*(1 - doppler/GPS_L1_FREQ_HZ));
 				
 			    int nitems_read;
-			    int processed = d_resamp->filter(d_resampled_input.get(), d_freq_shift_input.get(), d_conv_chunk, nitems_read);
+			    int processed = d_resamp->filter(d_resampled_input, d_freq_shift_input, d_conv_chunk, nitems_read);
 
 			    for (int i = processed;i < d_conv_chunk;i++)
 			      {
-				d_resampled_input.get()[i] =0;
+				d_resampled_input[i] =0;
 			      }
-
-			    // here correct  d_freq_shift_doppler by doppler shift
 
 			    d_cl_queue->enqueueWriteBuffer(*(d_cl_buffer_in),
 							   CL_TRUE, 0, sizeof(gr_complex)*d_conv_chunk,
-							   d_resampled_input.get());
+							   d_resampled_input);
 			  }
 			else
 			  {
-			    // here correct  d_freq_shift_doppler by doppler shift
+			    // here correct by doppler shift step
 
 			    kernel = cl::Kernel(d_cl_program, "mult_vectors");
 			    kernel.setArg(0, *d_cl_buffer_in); //input 1
