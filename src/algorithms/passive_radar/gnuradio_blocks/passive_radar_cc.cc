@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /* 
- * Copyright 2018 <+YOU OR YOUR COMPANY+>.
+ * Copyright 2018 Dennis Chuprakov
  * 
  * This is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -275,7 +275,7 @@ int passive_radar_cc::work(int noutput_items __attribute__ ((unused)),
 		    if (reliable_symbols[ch] <  static_cast<unsigned int>
                                               (GPS_CA_TELEMETRY_SYMBOLS_PER_BIT*GPS_CA_TELEMETRY_RATE_BITS_SECOND*d_duration)) continue;
 
-                    for (unsigned int i =0;i <= d_conv_chunk/2-1;i++)
+                    for (unsigned int i =0;i < d_conv_chunk/2;i++)
                       {
                          gr_complex buf                                          = d_inputs[ch+d_conditioners_count][i];
                          d_inputs[ch+d_conditioners_count] [i]                   = d_inputs[ch+d_conditioners_count][d_conv_chunk -1 - i];
