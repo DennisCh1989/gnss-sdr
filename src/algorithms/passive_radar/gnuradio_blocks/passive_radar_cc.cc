@@ -83,16 +83,16 @@ passive_radar_cc::passive_radar_cc(
 			       gr::io_signature::make(0, 0, 0)),
     d_conditioners_count(sources_count),
     d_fs_in(fs_in),
-    d_channels_count(channels_count),
-    d_duration(duration)
+    d_channels_count(channels_count)
 {
 
-  d_conv_chunk = pow(2, ceil(log2(static_cast<unsigned int> (duration * fs_in))));  
+  d_conv_chunk = pow(2, ceil(log2(static_cast<unsigned int> (duration * fs_in))));
+  d_duration = d_conv_chunk/d_fs_in;
   
   d_IDs = IDs;
   d_run_detector = false;
-  float doppler_step = (1/duration)*DOPPLER_DEFINITION;
-  d_resampling_step = static_cast<unsigned int>(MAX_TIME_SHIFT/(GPS_L1_CA_CODE_RATE_HZ*duration) *GPS_L1_FREQ_HZ/doppler_step);
+  float doppler_step = (1/d_duration)*DOPPLER_DEFINITION;
+  d_resampling_step = static_cast<unsigned int>(MAX_TIME_SHIFT/(GPS_L1_CA_CODE_RATE_HZ*d_duration) *GPS_L1_FREQ_HZ/doppler_step);
             
   std::vector<float> taps = gr::filter::firdes::low_pass_2(
 							   GAIN,
@@ -104,8 +104,8 @@ passive_radar_cc::passive_radar_cc(
 							   );
       
   d_resamp = new gr::filter::kernel::pfb_arb_resampler_ccf(1, taps, FILTER_SIZE);
-  d_resampled_input  = new gr_complex[static_cast<unsigned int>(d_conv_chunk*2)];
-  d_freq_shift_input = new gr_complex[static_cast<unsigned int>(d_conv_chunk)]; 
+  d_resampled_input  = new gr_complex[static_cast<unsigned int>(d_conv_chunk*1.1)];
+  d_freq_shift_input = new gr_complex[static_cast<unsigned int>(d_conv_chunk*1.1)]; 
       
   gr_complex* doppler_step_vector = static_cast<gr_complex*>(volk_gnsssdr_malloc(d_conv_chunk * sizeof(gr_complex), volk_gnsssdr_get_alignment()));
   
@@ -222,9 +222,9 @@ int passive_radar_cc::init_opencl_environment(std::string kernel_filename)
 
   d_cl_buffer_in           = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(gr_complex)*d_conv_chunk);
   d_cl_buffer_ffted_in     = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(gr_complex)*d_conv_chunk);
+  d_cl_buffer_doppler_step = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(gr_complex)*d_conv_chunk);
+  d_cl_buffer_fft_ref      = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(gr_complex)*d_conv_chunk);
   d_cl_buffer_magnitude    = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(float)*d_conv_chunk);
-  d_cl_buffer_doppler_step = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(float)*d_conv_chunk);
-  d_cl_buffer_fft_ref      = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(float)*d_conv_chunk);
 
   //create queue to which we will push commands for the device.
   d_cl_queue = new cl::CommandQueue(d_cl_context,d_cl_device);
@@ -275,20 +275,17 @@ int passive_radar_cc::work(int noutput_items __attribute__ ((unused)),
 		    if (reliable_symbols[ch] <  static_cast<unsigned int>
                                               (GPS_CA_TELEMETRY_SYMBOLS_PER_BIT*GPS_CA_TELEMETRY_RATE_BITS_SECOND*d_duration)) continue;
 
-		    gr_complex *in  = d_inputs[d_IDs[ch]];
-		    gr_complex *ref = d_inputs[ch + d_conditioners_count];
-
-                    for (unsigned int i =0;i <= d_conv_chunk/2;i++)
+                    for (unsigned int i =0;i <= d_conv_chunk/2-1;i++)
                       {
-                         gr_complex buf = ref[i];
-                         ref[i] = ref [d_conv_chunk -1 - i];
-                         ref [d_conv_chunk -1 - i] = buf;
+                         gr_complex buf                                          = d_inputs[ch+d_conditioners_count][i];
+                         d_inputs[ch+d_conditioners_count] [i]                   = d_inputs[ch+d_conditioners_count][d_conv_chunk -1 - i];
+                         d_inputs[ch+d_conditioners_count] [d_conv_chunk -1 - i] = buf;
 		      }
 					  
 		    // here perform direct FFT for input_items[ch + d_conditioners_count]
 
 		    d_cl_queue->enqueueWriteBuffer(*d_cl_buffer_fft_ref, CL_TRUE, 0,
-						   sizeof(gr_complex)*d_conv_chunk, ref);
+						   sizeof(gr_complex)*d_conv_chunk, d_inputs[ch + d_conditioners_count]);
 
 		    clFFT_ExecuteInterleaved((*d_cl_queue)(), d_cl_fft_plan, d_cl_fft_batch_size,
 					     clFFT_Forward, (*d_cl_buffer_fft_ref)(), (*d_cl_buffer_fft_ref)(),
@@ -315,7 +312,7 @@ int passive_radar_cc::work(int noutput_items __attribute__ ((unused)),
 			    gr_complex phase_inc = std::exp(gr_complex(0,-phase_inc_f));
 
                             // here correct  by doppler shift
-			    volk_32fc_s32fc_x2_rotator_32fc(d_freq_shift_input,in,phase_inc,_phase,d_conv_chunk);
+			    volk_32fc_s32fc_x2_rotator_32fc(d_freq_shift_input, d_inputs[d_IDs[ch]],phase_inc,_phase,d_conv_chunk);
 				
 			    d_resamp -> set_phase(0);
 			    d_resamp -> set_rate(static_cast<float>(FILTER_SIZE)*(1 - doppler/GPS_L1_FREQ_HZ));
