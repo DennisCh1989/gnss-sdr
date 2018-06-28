@@ -235,6 +235,7 @@ include_directories(
      ${CMAKE_SOURCE_DIR}/src/algorithms/PVT/libs
      ${CMAKE_SOURCE_DIR}/src/tests/unit-tests/signal-processing-blocks/libs
      ${CMAKE_SOURCE_DIR}/src/tests/common-files
+     ${CMAKE_SOURCE_DIR}/src/algorithms/passive_radar/gnuradio_blocks
      ${GLOG_INCLUDE_DIRS}
      ${GFlags_INCLUDE_DIRS}
      ${GNURADIO_RUNTIME_INCLUDE_DIRS}

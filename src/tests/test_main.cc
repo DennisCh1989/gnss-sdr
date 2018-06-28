@@ -108,6 +108,7 @@ DECLARE_string(log_dir);
 //#include "unit-tests/signal-processing-blocks/acquisition/gps_l1_ca_pcps_multithread_acquisition_gsoc2013_test.cc"
 #if OPENCL_BLOCKS_TEST
 #include "unit-tests/signal-processing-blocks/acquisition/gps_l1_ca_pcps_opencl_acquisition_gsoc2013_test.cc"
+#include "unit-tests/signal-processing-blocks/passive_radar/test_passive_radar.cc"
 #endif
 
 #include "unit-tests/signal-processing-blocks/tracking/galileo_e1_dll_pll_veml_tracking_test.cc"
