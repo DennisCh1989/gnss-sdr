@@ -18,6 +18,7 @@
  * Boston, MA 02110-1301, USA.
  */
 
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -375,5 +376,6 @@ int passive_radar_cc::work(int noutput_items __attribute__ ((unused)),
   // Tell runtime system how many output items we produced.
   return d_conv_chunk;
 }
+
 
 
