@@ -147,6 +147,7 @@ passive_radar_cc::~passive_radar_cc()
 
   if (d_opencl == 0)
     {
+      delete d_cl_queue;
       delete d_cl_buffer_in;
       delete d_cl_buffer_ffted_in;
       delete d_cl_buffer_magnitude;
