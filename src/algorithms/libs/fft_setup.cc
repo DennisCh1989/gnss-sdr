@@ -193,7 +193,7 @@ int getMaxKernelWorkGroupSize(cl_fft_plan *plan, unsigned int *max_wg_size, unsi
     int reg_needed = 0;
     *max_wg_size = std::numeric_limits<int>::max();
     int err;
-    unsigned wg_size;
+    size_t wg_size;
     
     unsigned int i;
     for(i = 0; i < num_devices; i++)
@@ -301,7 +301,7 @@ patch_kernel_source:
 		err = clGetDeviceInfo(devices[i], CL_DEVICE_TYPE, sizeof(device_type), &device_type, NULL);
 		ERR_MACRO(err);
 		
-		if(device_type == CL_DEVICE_TYPE_GPU)
+		if(device_type == CL_DEVICE_TYPE_CPU)
 		{	
 			gpu_found = 1;
 	        err = clBuildProgram(plan->program, 1, &devices[i], "-cl-mad-enable", NULL, NULL);

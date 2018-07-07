@@ -5,6 +5,7 @@
 #include <fstream>
 #include <string>
 #include "fft_internal.h"
+#include "fft_base_kernels.h"
 #include <iostream>
 
 #ifdef __APPLE__
@@ -351,195 +352,10 @@ int test_passive_radar_cc::init_opencl_environment(std::string kernel_filename)
 
 std::vector<uint64_t> test_reliable_symbols;
 
-int test_passive_radar_cc::work(int noutput_items __attribute__ ((unused)),
-			   gr_vector_const_void_star &input_items,
-			   gr_vector_void_star &output_items __attribute__ ((unused)))
-{
-
-  if (d_run_detector or d_opencl) return d_conv_chunk;
-              
-  for (unsigned int i =0;i < d_channels_count+d_conditioners_count;i++)
-    {
-      memcpy(d_inputs[i],(gr_complex*)input_items[i],d_conv_chunk*sizeof(gr_complex));
-    }
-  
-  d_run_detector = true;
-      
-  std::thread([this]
-	      {
-		for (unsigned int ch =0;ch < d_channels_count;ch++)
-		  {
-		    if (test_reliable_symbols[ch] <  static_cast<unsigned int>
-                                              (GPS_CA_TELEMETRY_SYMBOLS_PER_BIT*GPS_CA_TELEMETRY_RATE_BITS_SECOND*d_duration)) continue;
-
-                    for (unsigned int i =0;i < d_conv_chunk/2;i++)
-                      {
-                         gr_complex buf                                          = d_inputs[ch+d_conditioners_count][i];
-                         d_inputs[ch+d_conditioners_count] [i]                   = d_inputs[ch+d_conditioners_count][d_conv_chunk -1 - i];
-                         d_inputs[ch+d_conditioners_count] [d_conv_chunk -1 - i] = buf;
-		      }
-					  
-		    // here perform direct FFT for input_items[ch + d_conditioners_count]
-
-		    d_cl_queue->enqueueWriteBuffer(*d_cl_buffer_fft_ref, CL_TRUE, 0,
-						   sizeof(gr_complex)*d_conv_chunk, d_inputs[ch + d_conditioners_count]);
-
-		    clFFT_ExecuteInterleaved((*d_cl_queue)(), d_cl_fft_plan, d_cl_fft_batch_size,
-					     clFFT_Forward, (*d_cl_buffer_fft_ref)(), (*d_cl_buffer_fft_ref)(),
-					     0, NULL, NULL);
-
-		    //Conjugate the local code
-		    cl::Kernel kernel = cl::Kernel(d_cl_program, "conj_vector");
-		    kernel.setArg(0, *d_cl_buffer_fft_ref); //input
-		    kernel.setArg(1, *d_cl_buffer_fft_ref); //output
-		    d_cl_queue->enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(d_conv_chunk), cl::NullRange);
-	  
-		    for (unsigned int  step = 0;;step++) 
-		      {
-
-			float doppler = static_cast<float>(step)*d_doppler_step - DOPPLER_RANGE;
-			if (step % d_resampling_step == 0)
-			  {
-				
-			    gr_complex _phase[1];
-			    _phase[0] = gr_complex(0.0,0.0);
-				
-			    if (doppler > DOPPLER_RANGE) break;
-			    float phase_inc_f = static_cast<float>(GPS_TWO_PI) * doppler / static_cast<float>(d_fs_in);
-			    gr_complex phase_inc = std::exp(gr_complex(0,-phase_inc_f));
-
-                            // here correct  by doppler shift
-			    volk_32fc_s32fc_x2_rotator_32fc(d_freq_shift_input, d_inputs[d_IDs[ch]],phase_inc,_phase,d_conv_chunk);
-				
-			    d_resamp -> set_phase(0);
-			    d_resamp -> set_rate(static_cast<float>(test_FILTER_SIZE)*(1 - doppler/GPS_L1_FREQ_HZ));
-				
-			    int nitems_read;
-			    int processed = d_resamp->filter(d_resampled_input, d_freq_shift_input, d_conv_chunk, nitems_read);
-
-			    for (int i = processed;i < d_conv_chunk;i++)
-			      {
-				d_resampled_input[i] =0;
-			      }
-
-			    d_cl_queue->enqueueWriteBuffer(*(d_cl_buffer_in),
-							   CL_TRUE, 0, sizeof(gr_complex)*d_conv_chunk,
-							   d_resampled_input);
-			  }
-			else
-			  {
-			    // here correct by doppler shift step
-
-			    kernel = cl::Kernel(d_cl_program, "mult_vectors");
-			    kernel.setArg(0, *d_cl_buffer_in); //input 1
-			    kernel.setArg(1, *d_cl_buffer_doppler_step); //input 2
-			    kernel.setArg(2, *d_cl_buffer_in); //output
-			    d_cl_queue->enqueueNDRangeKernel(kernel,cl::NullRange, cl::NDRange(d_conv_chunk),
-							     cl::NullRange);
-			  }
-			    
-			// here perform  direct FFT 
-			clFFT_ExecuteInterleaved((*d_cl_queue)(), d_cl_fft_plan, d_cl_fft_batch_size,
-						 clFFT_Forward, (*d_cl_buffer_in)(), (*d_cl_buffer_ffted_in)(),
-						 0, NULL, NULL);
-			    
-			// here perform  element-wise production
-			kernel = cl::Kernel(d_cl_program, "mult_vectors");
-			kernel.setArg(0, *d_cl_buffer_ffted_in); //input 1
-			kernel.setArg(1, *d_cl_buffer_fft_ref); //input 2
-			kernel.setArg(2, *d_cl_buffer_ffted_in); //output
-			d_cl_queue->enqueueNDRangeKernel(kernel,cl::NullRange, cl::NDRange(d_conv_chunk),
-							 cl::NullRange);
-
-			// here perform  Inverse FFT
-			clFFT_ExecuteInterleaved((*d_cl_queue)(), d_cl_fft_plan, d_cl_fft_batch_size,
-						 clFFT_Inverse, (*d_cl_buffer_ffted_in)(), (*d_cl_buffer_ffted_in)(),
-						 0, NULL, NULL);
-			    
-			// Compute magnitude
-			kernel = cl::Kernel(d_cl_program, "magnitude_squared");
-			kernel.setArg(0, *d_cl_buffer_ffted_in);         //input 1
-			kernel.setArg(1, *d_cl_buffer_magnitude); //output
-			d_cl_queue->enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(d_conv_chunk),
-							 cl::NullRange);
-
-			//here put magnitudes to screen
-			d_cl_queue->enqueueReadBuffer(*(d_cl_buffer_magnitude),
-						      CL_TRUE, 0, sizeof(gr_complex)*d_conv_chunk,
-						      d_magnitudes);
-			
-			//test function
-
-			if (test(d_magnitudes,d_inputs,d_IDs,doppler,
-				 d_conditioners_count,d_channels_count) == false)
-			  {
-			    return -1;
-			  }
-		      }
-		  }
-        
-		d_run_detector = false;
-	      });
-  // Tell runtime system how many output items we produced.
-  return d_conv_chunk;
-}
-
-
-TEST(PassiveRadarTests,Test1)
-{
-  
-  const unsigned int d_sources_count = 2;
-  const unsigned int d_channels_count = 3;
-  std::vector <unsigned int> d_IDs={0,0,1};
-
-  unsigned int d_conv_chunk = 1024;
-
-  //generate first src vec
-
-  
-  gr_vector_const_void_star input_items;
-
-  //generate sources: src1 src2 
-  for (unsigned int i =0;i <d_sources_count;i++)
-    {
-      input_items.push_back(new gr_complex[d_conv_chunk]);
-    }
-
-  //connect sources with  other inputs
-
-  for (unsigned int  i=0;i < d_channels_count;i++)
-    {
-        input_items.push_back(input_items[d_IDs[i]]);
-    }
-
-  /*
-    test_passive_radar_cc(
-    float fs_in,
-    float duration,
-    unsigned int sources_count,
-    unsigned int channels_count ,
-    unsigned int vector_length,
-    std::vector<unsigned int> IDs
-    );
-   */
-
-
-  float d_fs_in = 4000000;
-  float d_duration = 0.000256; // sec d_duration = d_conv_chunk/d_fs_in
-  unsigned int d_vector_length = 0; //unused
-  
-  test_passive_radar_cc_sptr radar = make_test_passive_radar_cc(d_fs_in,d_duration,d_sources_count,d_channels_count,d_vector_length,d_IDs);
-
-  gr_vector_void_star output_items;
-
-  int noutput_items=0; //unused
-  EXPECT_GT(radar->work(noutput_items,input_items,output_items),0);
-}
-
 TEST(PassiveRadarTests,OpenCl_Simple_Conv_Test)
 {
 
-  std::string kernel_filename ="";
+  std::string kernel_filename ="math_kernel.cl"; //math_kernel.cl
   unsigned int  d_conv_chunk = 1024;
 
   gr_complex* d_input_a = new gr_complex[d_conv_chunk];
@@ -563,7 +379,7 @@ TEST(PassiveRadarTests,OpenCl_Simple_Conv_Test)
       
   cl::CommandQueue* d_cl_queue;
   clFFT_Plan d_cl_fft_plan;
-  cl_int d_cl_fft_batch_size;
+  cl_int d_cl_fft_batch_size=0;
 
   cl::Buffer* d_cl_buffer_input_a;
   cl::Buffer* d_cl_buffer_input_b;
@@ -584,7 +400,7 @@ TEST(PassiveRadarTests,OpenCl_Simple_Conv_Test)
 
   //get default GPU device of the default platform
   std::vector<cl::Device> gpu_devices;
-  d_cl_platform.getDevices(CL_DEVICE_TYPE_GPU, &gpu_devices);
+  d_cl_platform.getDevices(CL_DEVICE_TYPE_CPU, &gpu_devices);
 
   if(gpu_devices.size()==0)
     {
@@ -651,6 +467,10 @@ TEST(PassiveRadarTests,OpenCl_Simple_Conv_Test)
     }
    else
      {
+
+       d_cl_queue->enqueueWriteBuffer(*d_cl_buffer_input_a, CL_TRUE, 0,
+				     sizeof(gr_complex)*d_conv_chunk,d_input_a);
+       
        clFFT_ExecuteInterleaved((*d_cl_queue)(), d_cl_fft_plan, d_cl_fft_batch_size,
 				clFFT_Forward, (*d_cl_buffer_input_a)(), (*d_cl_buffer_input_a)(),
 				0, NULL, NULL);
@@ -663,6 +483,9 @@ TEST(PassiveRadarTests,OpenCl_Simple_Conv_Test)
 
        d_cl_queue->enqueueWriteBuffer(*d_cl_buffer_input_b, CL_TRUE, 0,
 				      sizeof(gr_complex)*d_conv_chunk, d_input_b);
+
+       d_cl_queue->enqueueWriteBuffer(*d_cl_buffer_input_b, CL_TRUE, 0,
+				     sizeof(gr_complex)*d_conv_chunk,d_input_b);
 
        clFFT_ExecuteInterleaved((*d_cl_queue)(), d_cl_fft_plan, d_cl_fft_batch_size,
 				clFFT_Forward, (*d_cl_buffer_input_b)(), (*d_cl_buffer_input_b)(),
@@ -692,6 +515,12 @@ TEST(PassiveRadarTests,OpenCl_Simple_Conv_Test)
 
        for (unsigned int i=0;i < d_conv_chunk;i++)
 	 {
+	   std::cout << d_input_a[i] << " ";
+	 }
+
+       std::cout << '\n';
+       for (unsigned int i=0;i < d_conv_chunk;i++)
+	 {
 	   std::cout << d_input_c[i] << " ";
 	 }
 
@@ -704,4 +533,553 @@ TEST(PassiveRadarTests,OpenCl_Simple_Conv_Test)
   delete [] d_input_a;
   delete [] d_input_b;
   delete [] d_input_c;
+}
+
+
+TEST(PassiveRadarTests,cl_buf_read_write)
+{
+
+  unsigned int d_test_sz = 4;
+  gr_complex* d_in = new gr_complex[d_test_sz];
+
+  std::vector<cl::Platform> all_platforms;
+  cl::Platform::get(&all_platforms);
+
+  if(all_platforms.size()==0)
+    {
+      std::cout << "No OpenCL platforms found. Check OpenCL installation!" << std::endl;
+    }
+
+  cl::Platform d_cl_platform = all_platforms[0]; //get default platform
+  std::cout << "Using platform: " << d_cl_platform.getInfo<CL_PLATFORM_NAME>()
+	    << std::endl;
+
+  //get default GPU device of the default platform
+  std::vector<cl::Device> gpu_devices;
+  d_cl_platform.getDevices(CL_DEVICE_TYPE_CPU, &gpu_devices);
+
+  if(gpu_devices.size()==0)
+    {
+      std::cout << "No GPU devices found. Check OpenCL installation!" << std::endl;
+    }
+
+  cl::Device d_cl_device = gpu_devices[0];
+
+  std::vector<cl::Device> device;
+  device.push_back(d_cl_device);
+  std::cout << "Using device: " << d_cl_device.getInfo<CL_DEVICE_NAME>() << std::endl;
+
+  cl::Context context(device);
+  cl::Context d_cl_context = context;
+ 
+  cl::Buffer*  d_cl_buf_in = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(gr_complex)*d_test_sz);
+
+  d_in[0] = -1;
+  d_in[1] = -1;
+  d_in[2] = 1;
+  d_in[3] = 1;
+
+  cl::CommandQueue* d_cl_queue = new cl::CommandQueue(d_cl_context,d_cl_device);
+
+  d_cl_queue->enqueueWriteBuffer(*d_cl_buf_in, CL_TRUE, 0,
+				 sizeof(gr_complex)*d_test_sz, d_in);
+
+  for (unsigned int i =0;i < d_test_sz;i++)
+    {
+      d_in[i]=0;
+    }
+
+  d_cl_queue->enqueueReadBuffer(*d_cl_buf_in, CL_TRUE, 0,
+				     sizeof(float)*d_test_sz,d_in);
+
+  for (unsigned int i =0;i < d_test_sz;i++)
+    {
+      std::cout << d_in[i] << " ";
+    }
+
+  delete [] d_in;
+  delete d_cl_buf_in;
+  delete d_cl_queue;
+  
+}
+
+TEST(PassiveRadarTests,cl_forward_fft)
+{
+  unsigned int d_test_sz = 4;
+  gr_complex* d_in = new gr_complex[d_test_sz];
+
+  std::vector<cl::Platform> all_platforms;
+  cl::Platform::get(&all_platforms);
+
+  if(all_platforms.size()==0)
+    {
+      std::cout << "No OpenCL platforms found. Check OpenCL installation!" << std::endl;
+    }
+
+  cl::Platform d_cl_platform = all_platforms[0]; //get default platform
+  std::cout << "Using platform: " << d_cl_platform.getInfo<CL_PLATFORM_NAME>()
+	    << std::endl;
+
+  //get default GPU device of the default platform
+  std::vector<cl::Device> gpu_devices;
+  d_cl_platform.getDevices(CL_DEVICE_TYPE_CPU, &gpu_devices);
+
+  if(gpu_devices.size()==0)
+    {
+      std::cout << "No GPU devices found. Check OpenCL installation!" << std::endl;
+    }
+
+  cl::Device d_cl_device = gpu_devices[0];
+
+  std::vector<cl::Device> device;
+  device.push_back(d_cl_device);
+  std::cout << "Using device: " << d_cl_device.getInfo<CL_DEVICE_NAME>() << std::endl;
+
+  cl::Context context(device);
+  cl::Context d_cl_context = context;
+ 
+  cl::Buffer*  d_cl_buf_in = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(gr_complex)*d_test_sz);
+
+  d_in[0] = -1;
+  d_in[1] = -1;
+  d_in[2] = 1;
+  d_in[3] = 1;
+
+  cl::CommandQueue* d_cl_queue = new cl::CommandQueue(d_cl_context,d_cl_device);
+
+  cl_int err;
+  clFFT_Dim3 dim = {d_test_sz, 1, 1};
+
+  clFFT_Plan d_cl_fft_plan = clFFT_CreatePlan(d_cl_context(), dim, clFFT_1D,
+				   clFFT_InterleavedComplexFormat, &err);
+
+  d_cl_queue->enqueueWriteBuffer(*d_cl_buf_in, CL_TRUE, 0,
+				 sizeof(gr_complex)*d_test_sz, d_in);
+
+  cl_int d_cl_fft_batch_size = 1;
+
+  clFFT_ExecuteInterleaved((*d_cl_queue)(), d_cl_fft_plan, d_cl_fft_batch_size,
+				clFFT_Forward, (*d_cl_buf_in)(), (*d_cl_buf_in)(),
+				0, NULL, NULL);
+
+  d_cl_queue->enqueueReadBuffer(*d_cl_buf_in, CL_TRUE, 0,
+				     sizeof(float)*d_test_sz,d_in);
+
+  for (unsigned int i =0;i < d_test_sz;i++)
+    {
+      std::cout << d_in[i] << " ";
+    }
+  
+  clFFT_DestroyPlan(d_cl_fft_plan);
+  delete [] d_in;
+  delete d_cl_buf_in;
+  delete d_cl_queue;
+}
+
+TEST(PassiveRadarTests,cl_forward_fft_batch_size_zero)
+{
+  unsigned int d_test_sz = 4;
+  gr_complex* d_in = new gr_complex[d_test_sz];
+
+  std::vector<cl::Platform> all_platforms;
+  cl::Platform::get(&all_platforms);
+
+  if(all_platforms.size()==0)
+    {
+      std::cout << "No OpenCL platforms found. Check OpenCL installation!" << std::endl;
+    }
+
+  cl::Platform d_cl_platform = all_platforms[0]; //get default platform
+  std::cout << "Using platform: " << d_cl_platform.getInfo<CL_PLATFORM_NAME>()
+	    << std::endl;
+
+  //get default GPU device of the default platform
+  std::vector<cl::Device> gpu_devices;
+  d_cl_platform.getDevices(CL_DEVICE_TYPE_CPU, &gpu_devices);
+
+  if(gpu_devices.size()==0)
+    {
+      std::cout << "No GPU devices found. Check OpenCL installation!" << std::endl;
+    }
+
+  cl::Device d_cl_device = gpu_devices[0];
+
+  std::vector<cl::Device> device;
+  device.push_back(d_cl_device);
+  std::cout << "Using device: " << d_cl_device.getInfo<CL_DEVICE_NAME>() << std::endl;
+
+  cl::Context context(device);
+  cl::Context d_cl_context = context;
+ 
+  cl::Buffer*  d_cl_buf_in = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(gr_complex)*d_test_sz);
+
+  d_in[0] = -1;
+  d_in[1] = -1;
+  d_in[2] = 1;
+  d_in[3] = 1;
+
+  cl::CommandQueue* d_cl_queue = new cl::CommandQueue(d_cl_context,d_cl_device);
+
+  cl_int err;
+  clFFT_Dim3 dim = {d_test_sz, 1, 1};
+
+  clFFT_Plan d_cl_fft_plan = clFFT_CreatePlan(d_cl_context(), dim, clFFT_1D,
+				   clFFT_InterleavedComplexFormat, &err);
+
+  d_cl_queue->enqueueWriteBuffer(*d_cl_buf_in, CL_TRUE, 0,
+				 sizeof(gr_complex)*d_test_sz, d_in);
+
+  cl_int d_cl_fft_batch_size = 0;
+
+  clFFT_ExecuteInterleaved((*d_cl_queue)(), d_cl_fft_plan, d_cl_fft_batch_size,
+				clFFT_Forward, (*d_cl_buf_in)(), (*d_cl_buf_in)(),
+				0, NULL, NULL);
+
+  d_cl_queue->enqueueReadBuffer(*d_cl_buf_in, CL_TRUE, 0,
+				     sizeof(float)*d_test_sz,d_in);
+
+  for (unsigned int i =0;i < d_test_sz;i++)
+    {
+      std::cout << d_in[i] << " ";
+    }
+  
+  clFFT_DestroyPlan(d_cl_fft_plan);
+  delete [] d_in;
+  delete d_cl_buf_in;
+  delete d_cl_queue;
+}
+
+TEST(PassiveRadarTests,cl_forward_inverse)
+{
+  unsigned int d_test_sz = 1024;
+  gr_complex* d_in = new gr_complex[d_test_sz];
+
+  std::vector<cl::Platform> all_platforms;
+  cl::Platform::get(&all_platforms);
+
+  if(all_platforms.size()==0)
+    {
+      std::cout << "No OpenCL platforms found. Check OpenCL installation!" << std::endl;
+    }
+
+  cl::Platform d_cl_platform = all_platforms[0]; //get default platform
+  std::cout << "Using platform: " << d_cl_platform.getInfo<CL_PLATFORM_NAME>()
+	    << std::endl;
+
+  //get default GPU device of the default platform
+  std::vector<cl::Device> gpu_devices;
+  d_cl_platform.getDevices(CL_DEVICE_TYPE_CPU, &gpu_devices);
+
+  if(gpu_devices.size()==0)
+    {
+      std::cout << "No GPU devices found. Check OpenCL installation!" << std::endl;
+    }
+
+  cl::Device d_cl_device = gpu_devices[0];
+
+  std::vector<cl::Device> device;
+  device.push_back(d_cl_device);
+  std::cout << "Using device: " << d_cl_device.getInfo<CL_DEVICE_NAME>() << std::endl;
+
+  cl::Context context(device);
+  cl::Context d_cl_context = context;
+ 
+  cl::Buffer*  d_cl_buf_in = new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(gr_complex)*d_test_sz);
+
+  d_in[0] = -1;
+  d_in[1] = 3;
+  d_in[2] = 100;
+  d_in[3] = 10;
+
+  cl::CommandQueue* d_cl_queue = new cl::CommandQueue(d_cl_context,d_cl_device);
+
+  cl_int err;
+  clFFT_Dim3 dim = {d_test_sz, 1, 1};
+
+  clFFT_Plan d_cl_fft_plan = clFFT_CreatePlan(d_cl_context(), dim, clFFT_1D,
+				   clFFT_InterleavedComplexFormat, &err);
+
+  d_cl_queue->enqueueWriteBuffer(*d_cl_buf_in, CL_TRUE, 0,
+				 sizeof(gr_complex)*d_test_sz, d_in);
+
+  cl_int d_cl_fft_batch_size = 1;
+
+  for (unsigned int i=0;i < d_test_sz;i++)
+	 {
+	   std::cout << d_in[i] << " ";
+	 }
+
+       std::cout << '\n';
+
+  clFFT_ExecuteInterleaved((*d_cl_queue)(), d_cl_fft_plan, d_cl_fft_batch_size,
+				clFFT_Forward, (*d_cl_buf_in)(), (*d_cl_buf_in)(),
+				0, NULL, NULL);
+
+  d_cl_queue->enqueueReadBuffer(*d_cl_buf_in, CL_TRUE, 0,
+				     sizeof(gr_complex)*d_test_sz,d_in);
+
+  for (unsigned int i=0;i < d_test_sz;i++)
+	 {
+	   std::cout << d_in[i] << " ";
+	 }
+
+  std::cout << '\n';
+
+  clFFT_ExecuteInterleaved((*d_cl_queue)(), d_cl_fft_plan, d_cl_fft_batch_size,
+				clFFT_Inverse, (*d_cl_buf_in)(), (*d_cl_buf_in)(),
+				0, NULL, NULL);
+
+  d_cl_queue->enqueueReadBuffer(*d_cl_buf_in, CL_TRUE, 0,
+				     sizeof(gr_complex)*d_test_sz,d_in);
+
+  for (unsigned int i =0;i < d_test_sz;i++)
+    {
+      std::cout << d_in[i] << " ";
+    }
+
+  
+  clFFT_DestroyPlan(d_cl_fft_plan);
+  delete [] d_in;
+  delete d_cl_buf_in;
+  delete d_cl_queue;
+}
+
+static  const char source[] =
+"kernel void conj_vector(ulong n,\n"
+"			 global float *vec1,\n"
+"		         global float *vec2)\n"
+"{\n"
+"  size_t i = get_global_id(0);\n"
+"  if ((i%2==0) && (i < n))\n"
+"    {\n"
+"      float a = vec1[i];\n"
+"      float b = vec1[i+1];\n"
+"      float c = vec2[i];\n"
+"      float d = -vec2[i+1];\n"
+"      vec2[i]   = a*c-b*d;\n"
+"      vec2[i+1] = a*d+b*c;\n"		   
+"    }\n"
+"}\n"
+"kernel void  magnitudes(ulong n,\n"
+"			global float *vec1,\n"
+"			global float *vec2)\n"
+"{\n"
+"  size_t i = get_global_id(0);\n"
+"  if ((i%2==0) && (i<n))\n"
+"    {\n"
+"      float a = vec1[i];\n"
+"      float b = vec1[i+1];\n"
+"      vec2[i/2]=a*a+b*b;\n"
+"    }\n"
+"}\n"
+"kernel void freq_shift(ulong n,\n"
+"		       float phase,\n"
+"		       global float *in,\n"
+"		       global float *out)\n"
+"{\n"
+"  size_t i = get_global_id(0);\n"
+"  if ((i%2==0) && (i<n))\n"
+"    {\n"
+"      float a =  in[i];\n"
+"      float b =  in[i+1];\n"
+"      float c =  cos(phase*0.5*i);\n"
+"      float d = -sin(phase*0.5*i);\n"
+"      out[i]    =  a*c-b*d;\n"
+"      out[i+1]  =  a*d+b*c;\n"
+"    }\n"
+"}\n";
+
+TEST(PassiveRadarTests,conv)
+{
+  std::string kernel_filename ="math_kernel.cl"; //math_kernel.cl
+  unsigned int  d_conv_chunk = 4;
+
+  lv_32fc_t* d_input_a = (lv_32fc_t*) volk_malloc(sizeof(lv_32fc_t)*d_conv_chunk,volk_get_alignment());
+  lv_32fc_t* d_input_b = (lv_32fc_t*) volk_malloc(sizeof(lv_32fc_t)*d_conv_chunk,volk_get_alignment());
+  float    * d_input_c = (float*) volk_malloc(sizeof(float)*d_conv_chunk,volk_get_alignment());
+
+  d_input_a[0] = gr_complex(1,0);
+  d_input_a[1] = gr_complex(3,0);
+  d_input_a[2] = gr_complex(-6,0);
+  d_input_a[3] = gr_complex(0,0);
+
+  d_input_b[d_conv_chunk-4] = 0;
+  d_input_b[d_conv_chunk-3] = -6;
+  d_input_b[d_conv_chunk-2] = 3;
+  d_input_b[d_conv_chunk-1] = 1;
+  
+  cl::Platform d_cl_platform;
+  cl::Device d_cl_device;
+  cl::Context d_cl_context;
+  cl::Program d_cl_program;
+      
+  cl::CommandQueue* d_cl_queue;
+  clFFT_Plan d_cl_fft_plan;
+  cl_int d_cl_fft_batch_size=1;
+
+  cl::Buffer* d_cl_buffer_input_a;
+  cl::Buffer* d_cl_buffer_input_b;
+  cl::Buffer*  d_cl_buffer_input_c;   
+    
+ //get all platforms (drivers)
+  std::vector<cl::Platform> all_platforms;
+  cl::Platform::get(&all_platforms);
+
+  if(all_platforms.size()==0)
+    {
+      std::cout << "No OpenCL platforms found. Check OpenCL installation!" << std::endl;
+    }
+
+  d_cl_platform = all_platforms[0]; //get default platform
+  std::cout << "Using platform: " << d_cl_platform.getInfo<CL_PLATFORM_NAME>()
+	    << std::endl;
+
+  //get default GPU device of the default platform
+  std::vector<cl::Device> gpu_devices;
+  d_cl_platform.getDevices(CL_DEVICE_TYPE_CPU, &gpu_devices);
+
+  if(gpu_devices.size()==0)
+    {
+      std::cout << "No GPU devices found. Check OpenCL installation!" << std::endl;
+    }
+
+  d_cl_device = gpu_devices[0];
+
+  std::vector<cl::Device> device;
+  device.push_back(d_cl_device);
+  std::cout << "Using device: " << d_cl_device.getInfo<CL_DEVICE_NAME>() << std::endl;
+
+  cl::Context context(device);
+  d_cl_context = context;
+
+  // build the program from the source in the file
+  std::ifstream kernel_file(kernel_filename, std::ifstream::in);
+  std::string kernel_code(std::istreambuf_iterator<char>(kernel_file),
+			  (std::istreambuf_iterator<char>()));
+  kernel_file.close();
+
+  // std::cout << "Kernel code: \n" << kernel_code << std::endl;
+
+  cl::Program::Sources sources;
+
+  sources.push_back({source,strlen(source)});
+
+  cl::Program program(context,sources);
+  if(program.build(device)!=CL_SUCCESS)
+    {
+      std::cout << " Error building: "
+		<< program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device[0])
+		<< std::endl;
+    }
+  d_cl_program = program;
+
+  // create buffers on the device
+  
+  cl::Buffer* d_cl_sig       =  new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(gr_complex)*d_conv_chunk);
+  cl::Buffer* d_cl_ffted_sig =  new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(gr_complex)*d_conv_chunk);
+  cl::Buffer* d_cl_ffted_ref =  new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(gr_complex)*d_conv_chunk);
+  cl::Buffer* d_cl_powers    =  new cl::Buffer(d_cl_context, CL_MEM_READ_WRITE, sizeof(float)*d_conv_chunk);
+ 
+  //create queue to which we will push commands for the device.
+  d_cl_queue = new cl::CommandQueue(d_cl_context,d_cl_device);
+
+  //create FFT plan
+  cl_int err;
+  clFFT_Dim3 dim = {d_conv_chunk, 1, 1};
+
+  d_cl_fft_plan = clFFT_CreatePlan(d_cl_context(), dim, clFFT_1D,
+				   clFFT_InterleavedComplexFormat, &err);
+  
+   if (err != 0)
+    {	
+      delete d_cl_queue;
+      delete d_cl_sig;       
+      delete d_cl_ffted_sig;
+      delete d_cl_ffted_ref;
+      delete d_cl_powers;
+        	      
+      std::cout << "Error creating OpenCL FFT plan." << std::endl;
+    }
+   else
+     {
+
+       d_cl_queue->enqueueWriteBuffer(*d_cl_ffted_sig, CL_TRUE, 0,
+				     sizeof(gr_complex)*d_conv_chunk,d_input_a);
+
+       float phase =1;
+       
+       cl::Kernel kernel;// = cl::Kernel(d_cl_program, "freq_shift");
+	 /*kernel.setArg(0,static_cast<cl_ulong> (d_conv_chunk*2));
+       kernel.setArg(1,phase);//input  0
+       kernel.setArg(2, *d_cl_sig); //input  1
+       kernel.setArg(3, *d_cl_ffted_sig); // output
+       d_cl_queue->enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(d_conv_chunk*2), cl::NullRange);*/
+       
+       clFFT_ExecuteInterleaved((*d_cl_queue)(), d_cl_fft_plan, d_cl_fft_batch_size,
+				clFFT_Forward, (*d_cl_ffted_sig)(), (*d_cl_ffted_sig)(),
+				0, NULL, NULL);
+
+       d_cl_queue->enqueueWriteBuffer(*d_cl_ffted_ref, CL_TRUE, 0,
+				     sizeof(gr_complex)*d_conv_chunk,d_input_b);
+
+       clFFT_ExecuteInterleaved((*d_cl_queue)(), d_cl_fft_plan, d_cl_fft_batch_size,
+				clFFT_Forward, (*d_cl_ffted_ref)(), (*d_cl_ffted_ref)(),
+				0, NULL, NULL);
+
+       kernel = cl::Kernel(d_cl_program, "conj_vector");
+       kernel.setArg(0,static_cast<cl_ulong> (d_conv_chunk*2));
+       kernel.setArg(1, *d_cl_ffted_sig); //input  0
+       kernel.setArg(2, *d_cl_ffted_ref); // input 1
+       kernel.setArg(2, *d_cl_ffted_sig); //output
+       d_cl_queue->enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(d_conv_chunk*2), cl::NullRange);
+
+       // here perform  Inverse FFT
+       clFFT_ExecuteInterleaved((*d_cl_queue)(), d_cl_fft_plan, d_cl_fft_batch_size,
+				clFFT_Inverse, (*d_cl_ffted_sig)(), (*d_cl_ffted_sig)(),
+				0, NULL, NULL);
+
+       kernel = cl::Kernel(d_cl_program, "magnitudes");
+       kernel.setArg(0,static_cast<cl_ulong> (d_conv_chunk*2));
+       kernel.setArg(1, *d_cl_ffted_sig); //input  
+       kernel.setArg(2, *d_cl_powers); //output
+       d_cl_queue->enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(d_conv_chunk), cl::NullRange);
+
+       d_cl_queue->enqueueReadBuffer(*d_cl_powers, CL_TRUE, 0,
+				     sizeof(float)*d_conv_chunk,d_input_c);
+       
+       std::cout << '\n';
+       for (unsigned int i=0;i < d_conv_chunk;i++)
+	 {
+	   std::cout << d_input_c[i] << " ";
+	 }
+
+       float m= -1;
+       int ind =0;
+
+       for (unsigned int i=0;i < d_conv_chunk;i++)
+	 {
+	   if (m<d_input_c[i])
+	     {
+	       m = d_input_c[i];
+	       ind = i;
+	     }	   
+	 }
+       
+       std::cout << " ";
+       std::cout << " ";
+
+       std::cout << "m: " << m << "\n";
+       std::cout << "ind: " << ind << " ";
+
+       delete d_cl_queue;
+       delete d_cl_sig;       
+       delete d_cl_ffted_sig;
+       delete d_cl_ffted_ref;
+       delete d_cl_powers;
+     }
+
+   clFFT_DestroyPlan(d_cl_fft_plan);
+   volk_free(d_input_a);
+   volk_free(d_input_b);
+   volk_free(d_input_c);
 }
