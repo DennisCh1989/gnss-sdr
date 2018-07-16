@@ -8,6 +8,8 @@
 #include "fft_base_kernels.h"
 #include <iostream>
 #include <complex>
+#include <volk_gnsssdr/volk_gnsssdr.h>
+#include <volk/volk.h>
 
 #ifdef __APPLE__
    #include "cl.hpp"
@@ -124,12 +126,11 @@ public:
 
 
 static  const char source[] =
-"kernel void mult_vec(ulong n,\n"
-"			 global float *vec1,\n"
-"		         global float *vec2)\n"
+"kernel void mult_vec(global float *vec1,\n"
+"		      global float *vec2)\n"
 "{\n"
 "  size_t i = get_global_id(0);\n"
-"  if ((i%2==0) && (i < n))\n"
+"  if (i%2==0)\n"
 "    {\n"
 "      float a = vec1[i];\n"
 "      float b = -vec1[i+1];\n"
@@ -139,23 +140,21 @@ static  const char source[] =
 "      vec2[i+1] = a*d+b*c;\n"		   
 "    }\n"
 "}\n"
-"kernel void  magnitudes(ulong n,\n"
-"			global float *vec1,\n"
-"			global float *vec2)\n"
+"kernel void  magnitudes(global float *vec1,\n"
+"			 global float *vec2)\n"
 "{\n"
 "  size_t i = get_global_id(0);\n"
-"  if ((i%2==0) && (i<n))\n"
+"  if (i%2==0)\n"
 "    {\n"
 "      float a = vec1[i];\n"
 "      float b = vec1[i+1];\n"
 "      vec2[i/2]=a*a+b*b;\n"
 "    }\n"
 "}\n"
-"kernel void conj(ulong n,\n"
-"                 float *vec)\n"
+"kernel void conj(float *vec)\n"
 "{\n"
 "  size_t i = get_global_id(0);\n"
-"  if ((i%2==1) && (i<n))\n"
+"  if (i%2==1)\n"
 "    {\n"
 "      vec[i] = -vec[i];\n"
 "    }\n"
@@ -282,9 +281,8 @@ TEST(PassiveRadarTests,conv)
 				     sizeof(gr_complex)*d_conv_chunk,d_input_b);
 
        cl::Kernel kernel = cl::Kernel(d_cl_program, "conj");
-       kernel.setArg(0,static_cast<cl_ulong> (d_conv_chunk*2));
-       kernel.setArg(1, *d_cl_ffted_ref); //input  0
-       kernel.setArg(1, *d_cl_ffted_ref); //output
+       kernel.setArg(0, *d_cl_ffted_ref); //input  0
+       kernel.setArg(0, *d_cl_ffted_ref); //output
        d_cl_queue->enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(d_conv_chunk*2), cl::NullRange);
 
         d_cl_queue->enqueueReadBuffer(*d_cl_ffted_ref, CL_TRUE, 0,
@@ -319,10 +317,9 @@ TEST(PassiveRadarTests,conv)
 	 }
 
        kernel = cl::Kernel(d_cl_program, "mult_vec");
-       kernel.setArg(0,static_cast<cl_ulong> (d_conv_chunk*2));
-       kernel.setArg(2, *d_cl_ffted_sig); //input  0
-       kernel.setArg(1, *d_cl_ffted_ref); // input 1
-       kernel.setArg(2, *d_cl_ffted_sig); //output
+       kernel.setArg(1, *d_cl_ffted_sig); //input  0
+       kernel.setArg(0, *d_cl_ffted_ref); // input 1
+       kernel.setArg(1, *d_cl_ffted_sig); //output
        d_cl_queue->enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(d_conv_chunk*2), cl::NullRange);
 
        d_cl_queue->enqueueReadBuffer(*d_cl_ffted_sig, CL_TRUE, 0,
@@ -349,9 +346,8 @@ TEST(PassiveRadarTests,conv)
 	 }
 
        kernel = cl::Kernel(d_cl_program, "magnitudes");
-       kernel.setArg(0,static_cast<cl_ulong> (d_conv_chunk*2));
-       kernel.setArg(1, *d_cl_ffted_sig); //input  
-       kernel.setArg(2, *d_cl_powers); //output
+       kernel.setArg(0, *d_cl_ffted_sig); //input  
+       kernel.setArg(1, *d_cl_powers); //output
        d_cl_queue->enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(d_conv_chunk*2), cl::NullRange);
 
        d_cl_queue->enqueueReadBuffer(*d_cl_powers, CL_TRUE, 0,
@@ -505,9 +501,8 @@ TEST(PassiveRadarTests,conv2)
 				     sizeof(gr_complex)*d_conv_chunk,d_input_b);
 
        cl::Kernel kernel = cl::Kernel(d_cl_program, "conj");
-       kernel.setArg(0,static_cast<cl_ulong> (d_conv_chunk*2));
-       kernel.setArg(1, *d_cl_ffted_ref); //input  0
-       kernel.setArg(1, *d_cl_ffted_ref); //output
+       kernel.setArg(0, *d_cl_ffted_ref); //input  0
+       kernel.setArg(0, *d_cl_ffted_ref); //output
        d_cl_queue->enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(d_conv_chunk*2), cl::NullRange);
        
        clFFT_ExecuteInterleaved((*d_cl_queue)(), d_cl_fft_plan, d_cl_fft_batch_size,
@@ -515,10 +510,9 @@ TEST(PassiveRadarTests,conv2)
 				0, NULL, NULL);
        
        kernel = cl::Kernel(d_cl_program, "mult_vec");
-       kernel.setArg(0,static_cast<cl_ulong> (d_conv_chunk*2));
-       kernel.setArg(2, *d_cl_ffted_sig); //input  0
-       kernel.setArg(1, *d_cl_ffted_ref); // input 1
-       kernel.setArg(2, *d_cl_ffted_sig); //output
+       kernel.setArg(1, *d_cl_ffted_sig); //input  0
+       kernel.setArg(0, *d_cl_ffted_ref); // input 1
+       kernel.setArg(1, *d_cl_ffted_sig); //output
        d_cl_queue->enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(d_conv_chunk*2), cl::NullRange);
 
        // here perform  Inverse FFT
@@ -527,9 +521,8 @@ TEST(PassiveRadarTests,conv2)
 				0, NULL, NULL);
 
        kernel = cl::Kernel(d_cl_program, "magnitudes");
-       kernel.setArg(0,static_cast<cl_ulong> (d_conv_chunk*2));
-       kernel.setArg(1, *d_cl_ffted_sig); //input  
-       kernel.setArg(2, *d_cl_powers); //output
+       kernel.setArg(0, *d_cl_ffted_sig); //input  
+       kernel.setArg(1, *d_cl_powers); //output
        d_cl_queue->enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(d_conv_chunk*2), cl::NullRange);
      }
    else
@@ -547,4 +540,44 @@ TEST(PassiveRadarTests,conv2)
    volk_free(d_input_a);
    volk_free(d_input_b);
    volk_free(d_input_c);
+}
+
+TEST(PassiveRadarTests,gnsssdr_rot)
+{
+  unsigned int d_conv_chunk = 32;
+  gr_complex* d_in = new gr_complex[d_conv_chunk];
+  
+  for (unsigned i =0;i < d_conv_chunk;i++)
+    {
+      d_in[i]=1;
+    }
+  
+  d_in[0]=d_in[1]=1;
+  gr_complex  incm = std::exp(gr_complex(0,0.01));
+  gr_complex rem_phi[1]  = gr_complex (1,0);
+  volk_32fc_s32fc_x2_rotator_32fc(d_in, d_in,incm,rem_phi,d_conv_chunk);
+
+  for (unsigned int i =0;i < d_conv_chunk;i++)
+    {
+      std::cout << d_in[i] << " ";
+    }
+  delete [] d_in;
+}
+
+TEST(PassiveRadarTests,gnsssdr_conj)
+{
+  unsigned int d_conv_chunk = 2;
+  gr_complex* d_in =new gr_complex[d_conv_chunk];// static_cast<gr_complex*>(volk_malloc( sizeof(gr_complex)*d_conv_chunk,volk_get_alignment()));
+  d_in[0]=gr_complex(-1,-3);
+  d_in[1]=gr_complex(1,10);
+  gr_complex* d_out =new gr_complex[d_conv_chunk];// static_cast<gr_complex*>(volk_malloc( sizeof(gr_complex)*d_conv_chunk,volk_get_alignment()));
+  volk_32fc_conjugate_32fc(d_in,d_in,d_conv_chunk);
+
+  for (unsigned int i =0;i < 2;i++)
+    {
+      //std::cout << d_in[i] << " ";
+      std::cout << d_in[i] << " ";
+    }
+  delete [] d_out;
+  delete [] d_in;
 }
