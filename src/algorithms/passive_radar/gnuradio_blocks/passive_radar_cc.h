@@ -85,16 +85,16 @@ private:
   cl::Device d_cl_device;
   cl::Context d_cl_context;
   cl::Program d_cl_program;
-  cl::Buffer* d_cl_buffer_in;
+  cl::Buffer* d_cl_in;
       
-  cl::Buffer* d_cl_buffer_magnitude;
+  cl::Buffer* d_cl_magnitude;
   cl::CommandQueue* d_cl_queue;
   clFFT_Plan d_cl_fft_plan;
   cl_int d_cl_fft_batch_size;
-  cl::Buffer*  d_cl_buffer_doppler_step;
+  cl::Buffer*  d_cl_doppler_step;
       
-  cl::Buffer* d_cl_buffer_fft_ref;
-  cl::Buffer* d_cl_buffer_ffted_in;
+  cl::Buffer* d_cl_ffted_ref;
+  cl::Buffer* d_cl_ffted_in;
 
   int d_opencl;
      
