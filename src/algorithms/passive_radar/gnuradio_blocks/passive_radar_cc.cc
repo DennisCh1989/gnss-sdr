@@ -48,6 +48,8 @@ const double ATTENUATION = 20;
 const float DOPPLER_RANGE = 5000;
 gr::filter::firdes::win_type WINDOW = gr::filter::firdes::WIN_HAMMING;
 unsigned int FILTER_SIZE = 32;
+const float LIGHT_SPEED =300000; 
+const float MAX_PATH_DELAY_KM = 550;
 
 passive_radar_cc_sptr make_passive_radar_cc( 
 					    float fs_in,
@@ -94,6 +96,7 @@ passive_radar_cc::passive_radar_cc(
   d_run_detector = false;
   float doppler_step = (1/d_duration)*DOPPLER_DEFINITION;
   d_resampling_step = static_cast<unsigned int>(MAX_TIME_SHIFT/(GPS_L1_CA_CODE_RATE_HZ*d_duration) *GPS_L1_FREQ_HZ/doppler_step);
+  d_out_sample_range = static_cast<unsigned int> (pow(2,ceil(log2(MAX_PATH_DELAY_KM/LIGHT_SPEED*d_fs_in))));
             
   std::vector<float> taps = gr::filter::firdes::low_pass_2(
 							   GAIN,
@@ -131,6 +134,14 @@ passive_radar_cc::passive_radar_cc(
     {
       d_inputs.push_back(new gr_complex[d_conv_chunk]);
     }
+
+  d_out_magnitudes = new float[d_out_sample_range];
+  d_zeros          = new float[d_out_sample_range];
+
+  // Inverse FFT
+  d_ifft = new gr::fft::fft_complex(d_fft_size, false);
+
+  this->message_port_register_out(pmt::mp("in"));
       
 }
 
@@ -157,6 +168,9 @@ passive_radar_cc::~passive_radar_cc()
   delete [] d_freq_shift_input;
   delete [] d_resampled_input;
   delete d_resamp;
+  delete [] d_out_magnitudes;
+  delete d_ifft; 
+  delete [] d_zeros;
 }
 
 static  const char source[] =
@@ -366,6 +380,26 @@ int passive_radar_cc::work(int noutput_items __attribute__ ((unused)),
 			kernel.setArg(1, *d_cl_magnitude); //output
 			d_cl_queue->enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(d_conv_chunk*2),
 							 cl::NullRange);
+
+                        d_cl_queue-> enqueueReadBuffer(*(d_cl_magnitude),
+						       CL_TRUE, 0, sizeof(float)*d_out_sample_range,
+						       d_out_magnitudes);
+                   
+                        float energy  = 0;
+                        volk_32f_accumulator_s32f(&energy,d_out_magnitudes,d_out_sample_range);
+                        float power = energy / static_cast<float>(d_out_sample_range);
+                        float norm_coeff = 1/power;
+
+                        volk_32f_s32f_multiply_32f(d_out_magnitudes,d_out_magnitudes,norm_coeff,d_out_sample_range);
+
+                        volk_32f_x2_interleave_32fc(d_ifft->inbuf(),d_out_magnitudes,d_zeros,d_out_sample_range);
+
+                        d_ifft -> execute();
+
+                        PMT_API pmt_t fs = init_c32vector(d_out_sample_range,d_ifft->outbuf());
+
+                        this->message_port_pub(pmt::mp("in"), fs);
+
 
 			//here put magnitudes to screen
 		      }

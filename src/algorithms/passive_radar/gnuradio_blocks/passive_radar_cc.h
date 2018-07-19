@@ -28,6 +28,7 @@
 #include <fstream>
 #include <string>
 #include "fft_internal.h"
+#include <gnuradio/fft/fft.h>
 
 #ifdef __APPLE__
    #include "cl.hpp"
@@ -68,6 +69,7 @@ private:
   unsigned int  d_conv_chunk ;
   unsigned int d_conditioners_count;
   unsigned int d_threshold;
+  unsigned int d_out_sample_range;
   std::vector <unsigned int> d_IDs;
   std::vector <bool> d_reliable_channel_flags;
   bool d_run_detector;
@@ -77,6 +79,7 @@ private:
   gr::filter::kernel::pfb_arb_resampler_ccf *d_resamp;
   gr_complex* d_resampled_input;
   gr_complex* d_freq_shift_input; 
+  float*      d_out_magnitudes;
   unsigned int d_resampling_step;
       
   int init_opencl_environment(std::string kernel_filename);
@@ -101,6 +104,11 @@ private:
   gr_complex * d_doppler_step_vector;
           
   std::vector<gr_complex*> d_inputs;
+
+  gr::fft::fft_real_rev* d_ifft;
+
+  float* d_zeros;
+  gr_complex* d_out_samples;
  
 public:
   passive_radar_cc(
