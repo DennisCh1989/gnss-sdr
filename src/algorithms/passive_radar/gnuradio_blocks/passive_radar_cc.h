@@ -105,7 +105,7 @@ private:
           
   std::vector<gr_complex*> d_inputs;
 
-  gr::fft::fft_real_rev* d_ifft;
+  gr::fft::fft_complex* d_ifft;
 
   float* d_zeros;
   gr_complex* d_out_samples;

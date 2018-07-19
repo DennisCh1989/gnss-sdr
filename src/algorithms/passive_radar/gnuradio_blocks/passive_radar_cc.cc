@@ -139,7 +139,7 @@ passive_radar_cc::passive_radar_cc(
   d_zeros          = new float[d_out_sample_range];
 
   // Inverse FFT
-  d_ifft = new gr::fft::fft_complex(d_fft_size, false);
+  d_ifft = new gr::fft::fft_complex(d_out_sample_range, false);
 
   this->message_port_register_out(pmt::mp("in"));
       
@@ -392,11 +392,11 @@ int passive_radar_cc::work(int noutput_items __attribute__ ((unused)),
 
                         volk_32f_s32f_multiply_32f(d_out_magnitudes,d_out_magnitudes,norm_coeff,d_out_sample_range);
 
-                        volk_32f_x2_interleave_32fc(d_ifft->inbuf(),d_out_magnitudes,d_zeros,d_out_sample_range);
+                        volk_32f_x2_interleave_32fc(d_ifft->get_inbuf(),d_out_magnitudes,d_zeros,d_out_sample_range);
 
                         d_ifft -> execute();
 
-                        PMT_API pmt_t fs = init_c32vector(d_out_sample_range,d_ifft->outbuf());
+			pmt::pmt_t fs = pmt::init_c32vector(d_out_sample_range,d_ifft->get_outbuf());
 
                         this->message_port_pub(pmt::mp("in"), fs);
 
